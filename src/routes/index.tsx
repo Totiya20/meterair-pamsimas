@@ -5,7 +5,8 @@ import { readWaterMeter } from "@/lib/read-meter.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Camera, Droplets, Loader2, RotateCcw, Receipt } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Camera, Droplets, Loader2, RotateCcw, Receipt, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/")({
 });
 
 const TARIF = 4000;
+const PREV_KEY = "meterair_prev";
 
 type AiResult = { reading: number | null; confidence?: string; notes?: string };
 
@@ -38,6 +40,17 @@ function Index() {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AiResult | null>(null);
+
+  const [previousReading, setPreviousReading] = useState<number | null>(() => {
+    try {
+      const v = localStorage.getItem(PREV_KEY);
+      return v ? Number(v) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState("");
 
   function onPick() {
     fileRef.current?.click();
@@ -73,8 +86,45 @@ function Index() {
     setResult(null);
   }
 
+  function startEdit() {
+    setEditVal(previousReading != null ? String(previousReading) : "");
+    setEditing(true);
+  }
+
+  function savePrev() {
+    const n = Number(editVal);
+    if (Number.isFinite(n) && n >= 0) {
+      setPreviousReading(n);
+      localStorage.setItem(PREV_KEY, String(n));
+      setEditing(false);
+      toast.success("Bacaan sebelumnya disimpan.");
+    } else {
+      toast.error("Masukkan angka yang valid.");
+    }
+  }
+
+  function useAsBaseline() {
+    if (result?.reading != null) {
+      setPreviousReading(result.reading);
+      localStorage.setItem(PREV_KEY, String(result.reading));
+      toast.success("Bacaan sekarang dijadikan bacaan awal.");
+    }
+  }
+
   const reading = result?.reading;
-  const cost = reading != null ? reading * TARIF : null;
+  const hasBoth = reading != null && previousReading != null;
+  const rawUsage = hasBoth ? reading - previousReading : null;
+  const usage = rawUsage != null ? Math.max(0, rawUsage) : null;
+  const cost = usage != null ? usage * TARIF : null;
+
+  const calculationNote =
+    rawUsage != null
+      ? rawUsage === 0
+        ? "Belum ada pemakaian karena bacaan saat ini sama dengan bacaan sebelumnya. Ubah bacaan sebelumnya ke angka meter bulan lalu agar tagihan terhitung."
+        : rawUsage < 0
+          ? "Bacaan saat ini lebih kecil dari bacaan sebelumnya. Periksa kembali angka bacaan sebelumnya."
+          : null
+      : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
@@ -135,12 +185,63 @@ function Index() {
           />
         </Card>
 
+        {/* Previous reading */}
+        <Card className="p-4 border-slate-200">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs uppercase tracking-wide text-slate-500">
+              Bacaan sebelumnya
+            </Label>
+            {!editing && (
+              <button
+                onClick={startEdit}
+                className="text-xs font-medium text-sky-600 hover:text-sky-700"
+              >
+                {previousReading != null ? "Ubah" : "Atur"}
+              </button>
+            )}
+          </div>
+          {editing ? (
+            <div className="mt-2 flex gap-2">
+              <Input
+                type="number"
+                min={0}
+                value={editVal}
+                onChange={(e) => setEditVal(e.target.value)}
+                placeholder="Contoh: 1234"
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") savePrev();
+                }}
+              />
+              <Button size="sm" onClick={savePrev}>
+                <Save className="h-4 w-4 mr-1" /> Simpan
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-1">
+              {previousReading != null ? (
+                <span className="text-2xl font-semibold tabular-nums text-slate-900">
+                  {previousReading.toLocaleString("id-ID")}{" "}
+                  <span className="text-base font-normal text-slate-500">m³</span>
+                </span>
+              ) : (
+                <p className="text-sm text-slate-400">Belum diatur. Atur bacaan bulan lalu di sini.</p>
+              )}
+            </div>
+          )}
+          {previousReading == null && reading != null && (
+            <Button variant="outline" className="mt-3 w-full text-sm" onClick={useAsBaseline}>
+              Gunakan <strong className="mx-1">{reading.toLocaleString("id-ID")} m³</strong> sebagai bacaan awal
+            </Button>
+          )}
+        </Card>
+
         {/* Result */}
         {result && !loading && (
           <Card className="p-5 border-slate-200 space-y-4">
             <div>
               <Label className="text-xs uppercase tracking-wide text-slate-500">
-                Bacaan meter
+                Bacaan meter saat ini
               </Label>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-4xl font-bold tabular-nums text-slate-900">
@@ -170,15 +271,29 @@ function Index() {
                   </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-sm text-sky-50 border-t border-white/15 pt-3">
-                  <span>Volume terbaca</span>
+                  <span>Pemakaian</span>
                   <span className="font-semibold tabular-nums">
-                    {reading?.toLocaleString("id-ID")} m³
+                    {usage?.toLocaleString("id-ID")} m³
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs text-sky-100">
                   <span>Tarif</span>
                   <span>Rp {TARIF.toLocaleString("id-ID")} / m³</span>
                 </div>
+                {previousReading != null && reading != null && rawUsage != null && rawUsage > 0 && (
+                  <div className="mt-1 flex items-center justify-between text-xs text-sky-100">
+                    <span>Detail</span>
+                    <span>
+                      {reading.toLocaleString("id-ID")} - {previousReading.toLocaleString("id-ID")} = {usage?.toLocaleString("id-ID")} m³
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {calculationNote && (
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-800">
+                {calculationNote}
               </div>
             )}
 
