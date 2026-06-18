@@ -98,8 +98,15 @@ function Index() {
   const prev = parseFloat(previousReading);
   const current = result?.reading;
   const hasBoth = current != null && !Number.isNaN(prev);
-  const usage = hasBoth ? Math.max(0, current - prev) : null;
+  const rawUsage = hasBoth ? current - prev : null;
+  const usage = rawUsage != null ? Math.max(0, rawUsage) : null;
   const cost = usage != null ? usage * TARIF : null;
+  const calculationNote =
+    rawUsage === 0
+      ? "Belum ada pemakaian karena bacaan saat ini sama dengan bacaan sebelumnya. Ubah bacaan sebelumnya ke angka meter bulan lalu agar tagihan terhitung."
+      : rawUsage != null && rawUsage < 0
+        ? "Bacaan saat ini lebih kecil dari bacaan sebelumnya. Periksa kembali angka bacaan sebelumnya."
+        : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
@@ -252,6 +259,12 @@ function Index() {
                   <span>{prev} → {current} m³</span>
                   <span>× Rp 4.000</span>
                 </div>
+              </div>
+            )}
+
+            {calculationNote && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                {calculationNote}
               </div>
             )}
 
