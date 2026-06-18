@@ -1,29 +1,274 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef, useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { readWaterMeter } from "@/lib/read-meter.functions";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Camera, Droplets, Loader2, RotateCcw, Receipt } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "MeterAir — Baca Meter Air dengan Kamera" },
+      {
+        name: "description",
+        content:
+          "Foto meteran air, biar AI yang baca angkanya. Hitung otomatis biaya pemakaian Rp 4.000/m³.",
+      },
+      { property: "og:title", content: "MeterAir — Baca Meter Air dengan Kamera" },
+      {
+        property: "og:description",
+        content: "Foto meter air, AI baca angkanya, biaya pemakaian langsung dihitung.",
+      },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+const TARIF = 4000;
+const PREV_KEY = "meterair:previousReading";
+
+type AiResult = { reading: number | null; confidence?: string; notes?: string };
+
 function Index() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const readMeter = useServerFn(readWaterMeter);
+
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AiResult | null>(null);
+  const [previousReading, setPreviousReading] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(PREV_KEY);
+    if (saved) setPreviousReading(saved);
+  }, []);
+
+  function onPick() {
+    fileRef.current?.click();
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setPreview(dataUrl);
+      setResult(null);
+      setLoading(true);
+      try {
+        const r = (await readMeter({ data: { imageDataUrl: dataUrl } })) as AiResult;
+        setResult(r);
+        if (r.reading == null) {
+          toast.error("Angka meter tidak terbaca. Coba foto lebih jelas.");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal membaca meter.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  function reset() {
+    setPreview(null);
+    setResult(null);
+  }
+
+  function savePrev(value: string) {
+    setPreviousReading(value);
+    if (value) localStorage.setItem(PREV_KEY, value);
+    else localStorage.removeItem(PREV_KEY);
+  }
+
+  function useAsBaseline() {
+    if (result?.reading != null) {
+      savePrev(String(result.reading));
+      toast.success("Disimpan sebagai bacaan awal.");
+    }
+  }
+
+  const prev = parseFloat(previousReading);
+  const current = result?.reading;
+  const hasBoth = current != null && !Number.isNaN(prev);
+  const usage = hasBoth ? Math.max(0, current - prev) : null;
+  const cost = usage != null ? usage * TARIF : null;
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
+      <header className="px-5 pt-8 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-500/30">
+            <Droplets className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir</h1>
+            <p className="text-xs text-slate-500">Foto → AI baca → biaya otomatis</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="px-5 pb-24 space-y-4">
+        {/* Baseline */}
+        <Card className="p-4 border-slate-200">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs uppercase tracking-wide text-slate-500">
+                Bacaan sebelumnya
+              </Label>
+              {editing || !previousReading ? (
+                <div className="mt-1.5 flex gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.001"
+                    placeholder="cth. 1234.5"
+                    value={previousReading}
+                    onChange={(e) => setPreviousReading(e.target.value)}
+                    autoFocus
+                  />
+                  <Button
+                    onClick={() => {
+                      savePrev(previousReading);
+                      setEditing(false);
+                    }}
+                  >
+                    Simpan
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-semibold tabular-nums text-slate-900">
+                    {previousReading}
+                  </span>
+                  <span className="text-sm text-slate-500">m³</span>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="ml-auto text-xs font-medium text-sky-600 hover:underline"
+                  >
+                    Ubah
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Tarif: <span className="font-medium text-slate-700">Rp 4.000 / m³</span>
+          </p>
+        </Card>
+
+        {/* Camera / preview */}
+        <Card className="overflow-hidden border-slate-200">
+          {!preview ? (
+            <button
+              onClick={onPick}
+              className="flex w-full flex-col items-center justify-center gap-3 px-6 py-14 text-center hover:bg-sky-50/50 transition"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg shadow-sky-500/30">
+                <Camera className="h-7 w-7" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900">Foto meteran air</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Arahkan kamera ke angka meter, pastikan jelas & terang.
+                </p>
+              </div>
+            </button>
+          ) : (
+            <div className="relative">
+              <img src={preview} alt="Foto meter" className="w-full aspect-[4/3] object-cover" />
+              {loading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/60 text-white backdrop-blur-sm">
+                  <Loader2 className="h-7 w-7 animate-spin" />
+                  <p className="text-sm font-medium">AI sedang membaca angka…</p>
+                </div>
+              )}
+              <button
+                onClick={reset}
+                className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Foto ulang
+              </button>
+            </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={onFile}
+          />
+        </Card>
+
+        {/* Result */}
+        {result && !loading && (
+          <Card className="p-5 border-slate-200 space-y-4">
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-slate-500">
+                Bacaan saat ini
+              </Label>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-4xl font-bold tabular-nums text-slate-900">
+                  {result.reading != null ? result.reading : "—"}
+                </span>
+                <span className="text-base text-slate-500">m³</span>
+                {result.confidence && (
+                  <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
+                    {result.confidence}
+                  </span>
+                )}
+              </div>
+              {result.notes && (
+                <p className="mt-2 text-xs text-slate-500">{result.notes}</p>
+              )}
+            </div>
+
+            {usage != null && cost != null && (
+              <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 text-white shadow-lg shadow-sky-500/20">
+                <div className="flex items-center gap-2 text-sky-100 text-xs font-medium uppercase tracking-wide">
+                  <Receipt className="h-3.5 w-3.5" />
+                  Tagihan pemakaian
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold tabular-nums">
+                    Rp {cost.toLocaleString("id-ID")}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-between text-sm text-sky-50 border-t border-white/15 pt-3">
+                  <span>Pemakaian</span>
+                  <span className="font-semibold tabular-nums">
+                    {usage.toLocaleString("id-ID")} m³
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-xs text-sky-100">
+                  <span>{prev} → {current} m³</span>
+                  <span>× Rp 4.000</span>
+                </div>
+              </div>
+            )}
+
+            {result.reading != null && (
+              <Button variant="outline" className="w-full" onClick={useAsBaseline}>
+                Simpan sebagai bacaan awal berikutnya
+              </Button>
+            )}
+          </Card>
+        )}
+
+        {!preview && (
+          <p className="text-center text-xs text-slate-400 pt-2">
+            Tip: pastikan angka pada meter terlihat jelas & tidak buram.
+          </p>
+        )}
+      </main>
     </div>
   );
 }
