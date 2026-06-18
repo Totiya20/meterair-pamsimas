@@ -23,7 +23,7 @@ export const readWaterMeter = createServerFn({ method: "POST" })
           {
             role: "system",
             content:
-              "Anda adalah pembaca meter air. Lihat foto meteran air dan kembalikan HANYA angka pembacaan dalam meter kubik (m³). Gunakan format JSON: {\"reading\": <number>, \"confidence\": \"high\"|\"medium\"|\"low\", \"notes\": \"<catatan singkat dalam bahasa Indonesia>\"}. Jika tidak terlihat meteran air sama sekali, gunakan reading: null. Jangan tambahkan teks lain di luar JSON.",
+              "Anda pembaca meter air analog/digital. Tugas: baca angka pemakaian utama (odometer hitam dengan latar putih) yang menunjukkan meter kubik (m³). ABAIKAN dial bulat merah kecil (itu pecahan liter, bukan m³ utama). ABAIKAN nomor seri, nomor ISO, dan teks teknis lain. Kembalikan HANYA JSON: {\"reading\": <number>, \"confidence\": \"high\"|\"medium\"|\"low\", \"notes\": \"<catatan singkat dalam bahasa Indonesia>\"}. Jika angka utama tidak terlihat / buram / bukan meter air, gunakan reading: null dan jelaskan di notes. Jangan tambahkan teks apa pun di luar JSON.",
           },
           {
             role: "user",
