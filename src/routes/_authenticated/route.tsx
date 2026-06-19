@@ -24,12 +24,12 @@ function AuthedLayout() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const tabs = [
+  const tabs: Array<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
     { to: "/", label: "Beranda", icon: Home, exact: true },
     { to: "/scan", label: "Scan", icon: Camera },
     { to: "/customers", label: "Pelanggan", icon: Users },
     { to: "/qr-print", label: "QR", icon: QrCode },
-  ] as const;
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-sky-50 to-white">
