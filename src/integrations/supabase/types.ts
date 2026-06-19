@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          address: string
+          created_at: string
+          created_by: string | null
+          customer_code: string
+          id: string
+          last_reading: number
+          meter_id: string | null
+          name: string
+          notes: string | null
+          phone: string
+          tariff: number
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          created_by?: string | null
+          customer_code: string
+          id?: string
+          last_reading?: number
+          meter_id?: string | null
+          name: string
+          notes?: string | null
+          phone: string
+          tariff?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          customer_code?: string
+          id?: string
+          last_reading?: number
+          meter_id?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string
+          tariff?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      readings: {
+        Row: {
+          cost: number
+          created_at: string
+          current_reading: number
+          customer_id: string
+          id: string
+          notes: string | null
+          previous_reading: number
+          read_by: string | null
+          usage: number
+        }
+        Insert: {
+          cost: number
+          created_at?: string
+          current_reading: number
+          customer_id: string
+          id?: string
+          notes?: string | null
+          previous_reading?: number
+          read_by?: string | null
+          usage: number
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          current_reading?: number
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          previous_reading?: number
+          read_by?: string | null
+          usage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
