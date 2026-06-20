@@ -52,7 +52,7 @@ export function CustomerForm({ initial, submitting, submitLabel = "Simpan", onSu
           id="code"
           value={v.customer_code}
           onChange={(e) => field("customer_code", e.target.value.toUpperCase())}
-          placeholder="PDAM-001"
+          placeholder="PAM-001"
           required
         />
         <p className="text-[11px] text-slate-500">Akan dijadikan QR code untuk ditempel di meteran.</p>

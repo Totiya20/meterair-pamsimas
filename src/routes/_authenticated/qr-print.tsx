@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, Loader2, QrCode as QrIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/qr-print")({
-  head: () => ({ meta: [{ title: "Cetak QR — MeterAir PDAM" }] }),
+  head: () => ({ meta: [{ title: "Cetak QR — MeterAir Pamsimas" }] }),
   component: QrPrintPage,
 });
 
