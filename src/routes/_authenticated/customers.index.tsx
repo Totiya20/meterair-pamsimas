@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, ChevronRight, Users } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/customers")({
+export const Route = createFileRoute("/_authenticated/customers/")({
   head: () => ({ meta: [{ title: "Pelanggan — MeterAir Pamsimas" }] }),
   component: CustomersPage,
 });
