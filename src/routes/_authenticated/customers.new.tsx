@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CustomerForm, type CustomerFormValues } from "@/components/CustomerForm";
 
 export const Route = createFileRoute("/_authenticated/customers/new")({
-  head: () => ({ meta: [{ title: "Tambah Pelanggan — MeterAir PDAM" }] }),
+  head: () => ({ meta: [{ title: "Tambah Pelanggan — MeterAir Pamsimas" }] }),
   component: NewCustomer,
 });
 

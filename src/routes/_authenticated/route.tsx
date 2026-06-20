@@ -34,7 +34,7 @@ function AuthedLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-sky-50 to-white">
       <div className="flex items-center justify-between px-5 pt-5 pb-2">
-        <div className="text-xs font-medium text-slate-500">MeterAir PDAM</div>
+        <div className="text-xs font-medium text-slate-500">MeterAir Pamsimas</div>
         <Button variant="ghost" size="sm" onClick={signOut} className="text-slate-600 h-8 px-2">
           <LogOut className="h-4 w-4 mr-1" /> Keluar
         </Button>

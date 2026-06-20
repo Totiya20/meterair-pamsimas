@@ -11,8 +11,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Masuk — MeterAir PDAM" },
-      { name: "description", content: "Login petugas pencatat meter air PDAM." },
+      { title: "Masuk — MeterAir Pamsimas" },
+      { name: "description", content: "Login petugas pencatat meter air Pamsimas." },
     ],
   }),
   component: AuthPage,
@@ -68,7 +68,7 @@ function AuthPage() {
           <Droplets className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir PDAM</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir Pamsimas</h1>
           <p className="text-xs text-slate-500">Aplikasi pencatat meter air</p>
         </div>
       </div>
@@ -103,7 +103,7 @@ function AuthPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="petugas@pdam.id"
+              placeholder="petugas@pamsimas.id"
               required
             />
           </div>

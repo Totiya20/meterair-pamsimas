@@ -6,7 +6,7 @@ import { Camera, Users, QrCode, Droplets, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
-    meta: [{ title: "Beranda — MeterAir PDAM" }],
+    meta: [{ title: "Beranda — MeterAir Pamsimas" }],
   }),
   component: Dashboard,
 });
@@ -36,7 +36,7 @@ function Dashboard() {
             <Droplets className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir PDAM</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir Pamsimas</h1>
             <p className="text-xs text-slate-500">Selamat bertugas hari ini</p>
           </div>
         </div>

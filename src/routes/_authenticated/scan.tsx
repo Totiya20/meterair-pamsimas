@@ -15,7 +15,7 @@ import { z } from "zod";
 const searchSchema = z.object({ customer: z.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/scan")({
-  head: () => ({ meta: [{ title: "Catat Meter — MeterAir PDAM" }] }),
+  head: () => ({ meta: [{ title: "Catat Meter — MeterAir Pamsimas" }] }),
   validateSearch: (s) => searchSchema.parse(s),
   component: ScanPage,
 });
