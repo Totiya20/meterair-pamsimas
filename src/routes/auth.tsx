@@ -35,23 +35,44 @@ function AuthPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPassword,
+        });
+        if (error) {
+          throw new Error(
+            error.message === "Invalid login credentials"
+              ? "Email atau password belum cocok. Jika pernah daftar ulang, gunakan password lama karena daftar ulang tidak mengganti password."
+              : error.message,
+          );
+        }
         toast.success("Berhasil masuk.");
         navigate({ to: "/", replace: true });
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: cleanPassword,
           options: {
             data: { full_name: name },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        toast.success("Akun dibuat. Cek email untuk konfirmasi, atau langsung login.");
+        if (data.session) {
+          toast.success("Akun dibuat dan langsung masuk.");
+          navigate({ to: "/", replace: true });
+          return;
+        }
+
+        if (data.user?.identities && data.user.identities.length === 0) {
+          toast.error("Email ini sudah terdaftar. Daftar ulang tidak mengganti password.");
+        } else {
+          toast.success("Akun dibuat. Silakan masuk.");
+        }
         setMode("login");
       }
     } catch (err) {
@@ -103,6 +124,8 @@ function AuthPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoCapitalize="none"
+              autoComplete="email"
               placeholder="petugas@pamsimas.id"
               required
             />
@@ -114,6 +137,7 @@ function AuthPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               minLength={6}
               required
             />
