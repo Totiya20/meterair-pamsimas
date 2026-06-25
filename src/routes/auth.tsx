@@ -86,8 +86,8 @@ function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-sky-50 to-white px-5 py-10">
       <div className="flex items-center gap-2.5 mb-8">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-500/30">
-          <Droplets className="h-5 w-5" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200 shadow-lg shadow-sky-500/20">
+          <img src={logoAsset.url} alt="PAMSIMAS Mangun Tirta" className="h-full w-full object-contain" />
         </div>
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir Pamsimas</h1>
