@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Camera, Users, QrCode, Droplets, TrendingUp } from "lucide-react";
+import { Camera, Users, QrCode, TrendingUp } from "lucide-react";
+import logoAsset from "@/assets/pamsimas-logo.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
