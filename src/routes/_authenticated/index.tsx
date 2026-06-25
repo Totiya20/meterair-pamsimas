@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Camera, Users, QrCode, Droplets, TrendingUp } from "lucide-react";
+import { Camera, Users, QrCode, TrendingUp } from "lucide-react";
+import logoAsset from "@/assets/pamsimas-logo.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -32,8 +33,8 @@ function Dashboard() {
     <div className="px-5">
       <header className="pt-4 pb-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-500/30">
-            <Droplets className="h-5 w-5" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200 shadow-lg shadow-sky-500/20">
+            <img src={logoAsset.url} alt="PAMSIMAS Mangun Tirta" className="h-full w-full object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">MeterAir Pamsimas</h1>
