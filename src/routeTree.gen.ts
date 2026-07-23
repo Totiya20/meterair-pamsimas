@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedScanRouteImport } from './routes/_authenticated/scan'
+import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedQrPrintRouteImport } from './routes/_authenticated/qr-print'
 import { Route as AuthenticatedCustomersIndexRouteImport } from './routes/_authenticated/customers.index'
 import { Route as AuthenticatedCustomersNewRouteImport } from './routes/_authenticated/customers.new'
@@ -35,6 +36,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedScanRoute = AuthenticatedScanRouteImport.update({
   id: '/scan',
   path: '/scan',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
+  id: '/report',
+  path: '/report',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedQrPrintRoute = AuthenticatedQrPrintRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/qr-print': typeof AuthenticatedQrPrintRoute
+  '/report': typeof AuthenticatedReportRoute
   '/scan': typeof AuthenticatedScanRoute
   '/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/customers/new': typeof AuthenticatedCustomersNewRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/qr-print': typeof AuthenticatedQrPrintRoute
+  '/report': typeof AuthenticatedReportRoute
   '/scan': typeof AuthenticatedScanRoute
   '/': typeof AuthenticatedIndexRoute
   '/customers/$id': typeof AuthenticatedCustomersIdRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/qr-print': typeof AuthenticatedQrPrintRoute
+  '/_authenticated/report': typeof AuthenticatedReportRoute
   '/_authenticated/scan': typeof AuthenticatedScanRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/customers/$id': typeof AuthenticatedCustomersIdRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/qr-print'
+    | '/report'
     | '/scan'
     | '/customers/$id'
     | '/customers/new'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/qr-print'
+    | '/report'
     | '/scan'
     | '/'
     | '/customers/$id'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/qr-print'
+    | '/_authenticated/report'
     | '/_authenticated/scan'
     | '/_authenticated/'
     | '/_authenticated/customers/$id'
@@ -156,6 +168,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedScanRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/report': {
+      id: '/_authenticated/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof AuthenticatedReportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/qr-print': {
       id: '/_authenticated/qr-print'
       path: '/qr-print'
@@ -189,6 +208,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedQrPrintRoute: typeof AuthenticatedQrPrintRoute
+  AuthenticatedReportRoute: typeof AuthenticatedReportRoute
   AuthenticatedScanRoute: typeof AuthenticatedScanRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCustomersIdRoute: typeof AuthenticatedCustomersIdRoute
@@ -198,6 +218,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedQrPrintRoute: AuthenticatedQrPrintRoute,
+  AuthenticatedReportRoute: AuthenticatedReportRoute,
   AuthenticatedScanRoute: AuthenticatedScanRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCustomersIdRoute: AuthenticatedCustomersIdRoute,
@@ -215,13 +236,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

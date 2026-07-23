@@ -67,6 +67,7 @@ export type Database = {
           customer_id: string
           id: string
           notes: string | null
+          paid: boolean
           previous_reading: number
           read_by: string | null
           usage: number
@@ -78,6 +79,7 @@ export type Database = {
           customer_id: string
           id?: string
           notes?: string | null
+          paid?: boolean
           previous_reading?: number
           read_by?: string | null
           usage: number
@@ -89,6 +91,7 @@ export type Database = {
           customer_id?: string
           id?: string
           notes?: string | null
+          paid?: boolean
           previous_reading?: number
           read_by?: string | null
           usage?: number
