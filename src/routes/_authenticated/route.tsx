@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Users, Camera, QrCode, LogOut } from "lucide-react";
+import { Home, Users, Camera, QrCode, LogOut, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ function AuthedLayout() {
     { to: "/", label: "Beranda", icon: Home, exact: true },
     { to: "/scan", label: "Scan", icon: Camera },
     { to: "/customers", label: "Pelanggan", icon: Users },
+    { to: "/report", label: "Laporan", icon: FileText },
     { to: "/qr-print", label: "QR", icon: QrCode },
   ];
 
@@ -44,7 +45,7 @@ function AuthedLayout() {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 grid grid-cols-4 z-40">
+      <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 grid grid-cols-5 z-40">
         {tabs.map((t) => {
           const active = t.exact ? pathname === t.to : pathname.startsWith(t.to);
           const Icon = t.icon;
