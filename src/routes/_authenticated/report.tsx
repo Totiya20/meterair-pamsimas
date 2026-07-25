@@ -73,27 +73,32 @@ function ReportPage() {
   });
 
   const rows = data ?? [];
+  const ABONEMEN = 5000;
   const totalKubik = rows.reduce((s, r) => s + Number(r.usage), 0);
-  const totalHarga = rows.reduce((s, r) => s + Number(r.cost), 0);
-  const totalDibayar = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.cost), 0);
+  const totalAbonemen = rows.length * ABONEMEN;
+  const totalHargaAir = rows.reduce((s, r) => s + Number(r.cost), 0);
+  const totalHarga = totalHargaAir + totalAbonemen;
+  const totalDibayar = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.cost) + ABONEMEN, 0);
   const totalBelum = totalHarga - totalDibayar;
 
   function exportCsv() {
-    const header = ["No", "Pelanggan", "Kubikasi m3", "Harga", "Total", "Dibayar", "Belum Dibayar", "Ket"];
+    const header = ["No", "Pelanggan", "Kubikasi m3", "Harga", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Ket"];
     const lines = rows.map((r, i) => {
       const tarif = r.customers?.tariff ?? 4000;
+      const total = Number(r.cost) + ABONEMEN;
       return [
         i + 1,
         r.customers?.name ?? "-",
         r.usage,
         tarif,
-        r.cost,
-        r.paid ? r.cost : 0,
-        r.paid ? 0 : r.cost,
+        ABONEMEN,
+        total,
+        r.paid ? total : 0,
+        r.paid ? 0 : total,
         (r.notes ?? "").replace(/[\r\n,]/g, " "),
       ].join(",");
     });
-    lines.push(["", "TOTAL", totalKubik, "", totalHarga, totalDibayar, totalBelum, ""].join(","));
+    lines.push(["", "TOTAL", totalKubik, "", totalAbonemen, totalHarga, totalDibayar, totalBelum, ""].join(","));
     const csv = [header.join(","), ...lines].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -153,6 +158,7 @@ function ReportPage() {
                 <th className="p-2 text-left border-b border-slate-200">Pelanggan</th>
                 <th className="p-2 text-right border-b border-slate-200">Kubikasi m³</th>
                 <th className="p-2 text-right border-b border-slate-200">Harga</th>
+                <th className="p-2 text-right border-b border-slate-200">Abonemen</th>
                 <th className="p-2 text-right border-b border-slate-200">Total</th>
                 <th className="p-2 text-right border-b border-slate-200">Dibayar</th>
                 <th className="p-2 text-right border-b border-slate-200">Belum</th>
@@ -162,20 +168,21 @@ function ReportPage() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-slate-500">
+                  <td colSpan={9} className="p-6 text-center text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin inline mr-1" /> Memuat...
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-slate-500">
+                  <td colSpan={9} className="p-6 text-center text-slate-500">
                     Belum ada data pada bulan ini.
                   </td>
                 </tr>
               )}
               {rows.map((r, i) => {
                 const tarif = r.customers?.tariff ?? 4000;
+                const total = Number(r.cost) + ABONEMEN;
                 return (
                   <tr key={r.id} className="border-b border-slate-100">
                     <td className="p-2 text-slate-600">{i + 1}</td>
@@ -184,12 +191,13 @@ function ReportPage() {
                     </td>
                     <td className="p-2 text-right tabular-nums">{Number(r.usage).toFixed(2)}</td>
                     <td className="p-2 text-right tabular-nums text-slate-600">{rupiah(tarif)}</td>
-                    <td className="p-2 text-right tabular-nums font-semibold">{rupiah(Number(r.cost))}</td>
+                    <td className="p-2 text-right tabular-nums text-slate-600">{rupiah(ABONEMEN)}</td>
+                    <td className="p-2 text-right tabular-nums font-semibold">{rupiah(total)}</td>
                     <td className="p-2 text-right tabular-nums text-emerald-700">
-                      {r.paid ? rupiah(Number(r.cost)) : "-"}
+                      {r.paid ? rupiah(total) : "-"}
                     </td>
                     <td className="p-2 text-right tabular-nums text-rose-700">
-                      {r.paid ? "-" : rupiah(Number(r.cost))}
+                      {r.paid ? "-" : rupiah(total)}
                     </td>
                     <td className="p-2 text-center">
                       <Checkbox
@@ -211,6 +219,7 @@ function ReportPage() {
                   </td>
                   <td className="p-2 text-right tabular-nums">{totalKubik.toFixed(2)}</td>
                   <td className="p-2"></td>
+                  <td className="p-2 text-right tabular-nums">{rupiah(totalAbonemen)}</td>
                   <td className="p-2 text-right tabular-nums">{rupiah(totalHarga)}</td>
                   <td className="p-2 text-right tabular-nums text-emerald-700">{rupiah(totalDibayar)}</td>
                   <td className="p-2 text-right tabular-nums text-rose-700">{rupiah(totalBelum)}</td>
