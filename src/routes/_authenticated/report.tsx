@@ -73,27 +73,32 @@ function ReportPage() {
   });
 
   const rows = data ?? [];
+  const ABONEMEN = 5000;
   const totalKubik = rows.reduce((s, r) => s + Number(r.usage), 0);
-  const totalHarga = rows.reduce((s, r) => s + Number(r.cost), 0);
-  const totalDibayar = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.cost), 0);
+  const totalAbonemen = rows.length * ABONEMEN;
+  const totalHargaAir = rows.reduce((s, r) => s + Number(r.cost), 0);
+  const totalHarga = totalHargaAir + totalAbonemen;
+  const totalDibayar = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.cost) + ABONEMEN, 0);
   const totalBelum = totalHarga - totalDibayar;
 
   function exportCsv() {
-    const header = ["No", "Pelanggan", "Kubikasi m3", "Harga", "Total", "Dibayar", "Belum Dibayar", "Ket"];
+    const header = ["No", "Pelanggan", "Kubikasi m3", "Harga", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Ket"];
     const lines = rows.map((r, i) => {
       const tarif = r.customers?.tariff ?? 4000;
+      const total = Number(r.cost) + ABONEMEN;
       return [
         i + 1,
         r.customers?.name ?? "-",
         r.usage,
         tarif,
-        r.cost,
-        r.paid ? r.cost : 0,
-        r.paid ? 0 : r.cost,
+        ABONEMEN,
+        total,
+        r.paid ? total : 0,
+        r.paid ? 0 : total,
         (r.notes ?? "").replace(/[\r\n,]/g, " "),
       ].join(",");
     });
-    lines.push(["", "TOTAL", totalKubik, "", totalHarga, totalDibayar, totalBelum, ""].join(","));
+    lines.push(["", "TOTAL", totalKubik, "", totalAbonemen, totalHarga, totalDibayar, totalBelum, ""].join(","));
     const csv = [header.join(","), ...lines].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
