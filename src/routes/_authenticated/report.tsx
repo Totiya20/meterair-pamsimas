@@ -344,8 +344,6 @@ function ReportPage() {
               )}
               {perCustomer.map((r, i) => {
                 const fullyPaid = r.belum === 0 && r.total > 0;
-                // Cari reading untuk toggle (jika hanya 1 pembacaan)
-                const singleReading = r.count === 1 ? rows.find((x) => x.customer_id === r.customer_id) : null;
                 return (
                   <tr key={r.customer_id} className="border-b border-slate-100">
                     <td className="p-2 text-slate-600">{i + 1}</td>
@@ -365,18 +363,12 @@ function ReportPage() {
                       )}
                     </td>
                     <td className="p-2 text-center">
-                      {singleReading ? (
-                        <Checkbox
-                          checked={singleReading.paid}
-                          disabled={togglePaid.isPending}
-                          onCheckedChange={(v) => togglePaid.mutate({ id: singleReading.id, paid: Boolean(v) })}
-                          aria-label="Tandai dibayar"
-                        />
-                      ) : (
-                        <span className={`text-[10px] ${fullyPaid ? "text-emerald-600" : "text-slate-400"}`}>
-                          {fullyPaid ? "✓" : "-"}
-                        </span>
-                      )}
+                      <Checkbox
+                        checked={fullyPaid}
+                        disabled={togglePaid.isPending}
+                        onCheckedChange={(v) => togglePaid.mutate({ ids: r.ids, paid: Boolean(v) })}
+                        aria-label="Tandai dibayar"
+                      />
                     </td>
                   </tr>
                 );
