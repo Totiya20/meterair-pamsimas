@@ -83,8 +83,8 @@ function ReportPage() {
   });
 
   const togglePaid = useMutation({
-    mutationFn: async ({ id, paid }: { id: string; paid: boolean }) => {
-      const { error } = await supabase.from("readings").update({ paid }).eq("id", id);
+    mutationFn: async ({ ids, paid }: { ids: string[]; paid: boolean }) => {
+      const { error } = await supabase.from("readings").update({ paid }).in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["report", monthKey] }),
