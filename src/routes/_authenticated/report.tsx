@@ -111,6 +111,7 @@ function ReportPage() {
     dibayar: number;
     belum: number;
     count: number;
+    ids: string[];
   };
   const perCustomer = useMemo<Summary[]>(() => {
     const map = new Map<string, Summary>();
@@ -126,6 +127,7 @@ function ReportPage() {
         existing.dibayar += r.paid ? total : 0;
         existing.belum += r.paid ? 0 : total;
         existing.count += 1;
+        existing.ids.push(r.id);
       } else {
         map.set(key, {
           customer_id: key,
@@ -138,26 +140,59 @@ function ReportPage() {
           dibayar: r.paid ? total : 0,
           belum: r.paid ? 0 : total,
           count: 1,
+          ids: [r.id],
         });
       }
     }
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
 
-  function exportCsv() {
-    const header = ["No", "Kode", "Pelanggan", "Kubikasi m3", "Harga", "Abonemen", "Total", "Dibayar", "Belum Dibayar"];
-    const lines = perCustomer.map((r, i) => [
+  function exportExcel() {
+    const periode = `${MONTHS[monthNum - 1]} ${year}`;
+    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status"];
+    const body = perCustomer.map((r, i) => [
       i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, r.dibayar, r.belum,
-    ].join(","));
-    lines.push(["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum].join(","));
-    const csv = [header.join(","), ...lines].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `laporan-pamsimas-${monthKey}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      r.belum === 0 ? "LUNAS" : "BELUM",
+    ]);
+    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, ""];
+
+    const aoa: (string | number)[][] = [
+      ["LAPORAN REKAPITULASI PAMSIMAS"],
+      [`Periode: ${periode}`],
+      [`Total Pelanggan: ${perCustomer.length}`],
+      [],
+      header,
+      ...body,
+      footer,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      { wch: 5 }, { wch: 14 }, { wch: 32 }, { wch: 13 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 },
+    ];
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },
+    ];
+    ws["!freeze"] = { xSplit: 0, ySplit: 5 };
+
+    const lastRow = 5 + body.length;
+    for (let r = 5; r <= lastRow; r++) {
+      for (const c of [3]) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (cell && typeof cell.v === "number") cell.z = "#,##0.00";
+      }
+      for (const c of [4, 5, 6, 7, 8]) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (cell && typeof cell.v === "number") cell.z = '"Rp"#,##0';
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Laporan ${MONTHS[monthNum - 1]}`);
+    XLSX.writeFile(wb, `laporan-pamsimas-${monthKey}.xlsx`);
   }
 
   function exportPdf() {
