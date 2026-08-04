@@ -284,8 +284,8 @@ function ReportPage() {
           <Button variant="default" size="sm" onClick={exportPdf} disabled={perCustomer.length === 0} className="flex-1 bg-sky-600 hover:bg-sky-700">
             <FileText className="h-4 w-4 mr-1" /> Export PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={perCustomer.length === 0} className="flex-1">
-            <FileSpreadsheet className="h-4 w-4 mr-1" /> CSV
+          <Button variant="outline" size="sm" onClick={exportExcel} disabled={perCustomer.length === 0} className="flex-1">
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
           </Button>
         </div>
       </Card>
