@@ -16,6 +16,7 @@ import { Loader2, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/report")({
   head: () => ({
