@@ -19,6 +19,7 @@ import { Route as AuthenticatedCustomersIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedCustomersNewRouteImport } from './routes/_authenticated/customers.new'
 import { Route as AuthenticatedCustomersIdRouteImport } from './routes/_authenticated/customers.$id'
+import { Route as AuthenticatedAdminLoginLogsRouteImport } from './routes/_authenticated/admin.login-logs'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -72,6 +73,12 @@ const AuthenticatedCustomersIdRoute =
     path: '/customers/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminLoginLogsRoute =
+  AuthenticatedAdminLoginLogsRouteImport.update({
+    id: '/admin/login-logs',
+    path: '/admin/login-logs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/qr-print': typeof AuthenticatedQrPrintRoute
   '/report': typeof AuthenticatedReportRoute
   '/scan': typeof AuthenticatedScanRoute
+  '/admin/login-logs': typeof AuthenticatedAdminLoginLogsRoute
   '/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/customers/new': typeof AuthenticatedCustomersNewRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
   '/report': typeof AuthenticatedReportRoute
   '/scan': typeof AuthenticatedScanRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/login-logs': typeof AuthenticatedAdminLoginLogsRoute
   '/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/customers/new': typeof AuthenticatedCustomersNewRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -103,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/report': typeof AuthenticatedReportRoute
   '/_authenticated/scan': typeof AuthenticatedScanRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/login-logs': typeof AuthenticatedAdminLoginLogsRoute
   '/_authenticated/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/_authenticated/customers/new': typeof AuthenticatedCustomersNewRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/qr-print'
     | '/report'
     | '/scan'
+    | '/admin/login-logs'
     | '/customers/$id'
     | '/customers/new'
     | '/admin/'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/report'
     | '/scan'
     | '/'
+    | '/admin/login-logs'
     | '/customers/$id'
     | '/customers/new'
     | '/admin'
@@ -139,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/report'
     | '/_authenticated/scan'
     | '/_authenticated/'
+    | '/_authenticated/admin/login-logs'
     | '/_authenticated/customers/$id'
     | '/_authenticated/customers/new'
     | '/_authenticated/admin/'
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCustomersIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/login-logs': {
+      id: '/_authenticated/admin/login-logs'
+      path: '/admin/login-logs'
+      fullPath: '/admin/login-logs'
+      preLoaderRoute: typeof AuthenticatedAdminLoginLogsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -230,6 +250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
   AuthenticatedScanRoute: typeof AuthenticatedScanRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminLoginLogsRoute: typeof AuthenticatedAdminLoginLogsRoute
   AuthenticatedCustomersIdRoute: typeof AuthenticatedCustomersIdRoute
   AuthenticatedCustomersNewRoute: typeof AuthenticatedCustomersNewRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -241,6 +262,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportRoute: AuthenticatedReportRoute,
   AuthenticatedScanRoute: AuthenticatedScanRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminLoginLogsRoute: AuthenticatedAdminLoginLogsRoute,
   AuthenticatedCustomersIdRoute: AuthenticatedCustomersIdRoute,
   AuthenticatedCustomersNewRoute: AuthenticatedCustomersNewRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
