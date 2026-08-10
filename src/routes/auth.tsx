@@ -87,10 +87,12 @@ function AuthPage() {
         });
         if (error) throw error;
         if (data.session) {
+          await logAttempt(cleanEmail, "berhasil");
           toast.success("Akun dibuat dan langsung masuk.");
-          navigate({ to: "/", replace: true });
+          await goToRoleDashboard();
           return;
         }
+
 
         if (data.user?.identities && data.user.identities.length === 0) {
           toast.error("Email ini sudah terdaftar. Daftar ulang tidak mengganti password.");
