@@ -7,6 +7,8 @@ import { ArrowLeft, Camera, Pencil, Trash2, Loader2, History, MapPin, Phone, Use
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CustomerForm, type CustomerFormValues } from "@/components/CustomerForm";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 export const Route = createFileRoute("/_authenticated/customers/$id")({
   head: () => ({ meta: [{ title: "Detail Pelanggan — MeterAir Pamsimas" }] }),
