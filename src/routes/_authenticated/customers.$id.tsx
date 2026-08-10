@@ -19,8 +19,11 @@ function CustomerDetail() {
   const { id } = useParams({ from: "/_authenticated/customers/$id" });
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { isAdmin } = useIsAdmin();
   const [editing, setEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingReading, setDeletingReading] = useState<string | null>(null);
+
 
   const customer = useQuery({
     queryKey: ["customer", id],
