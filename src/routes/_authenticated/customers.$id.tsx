@@ -86,6 +86,27 @@ function CustomerDetail() {
     navigate({ to: "/customers" });
   }
 
+  async function removeReading(readingId: string) {
+    if (
+      !confirm(
+        "Hapus riwayat pembacaan ini secara permanen? Tindakan ini tidak bisa dibatalkan.",
+      )
+    )
+      return;
+    setDeletingReading(readingId);
+    const { error } = await supabase.from("readings").delete().eq("id", readingId);
+    setDeletingReading(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Riwayat pembacaan dihapus.");
+    qc.invalidateQueries({ queryKey: ["readings", id] });
+    qc.invalidateQueries({ queryKey: ["customer", id] });
+  }
+
+
+
   if (customer.isLoading) {
     return (
       <div className="px-5 pt-6 flex items-center gap-2 text-slate-500">
