@@ -270,6 +270,22 @@ function ScanPage() {
             />
           </Card>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setPreview(null);
+              setAiLoading(false);
+              setOverrideReading("");
+              setResult({ reading: null, notes: "Input manual oleh petugas" });
+            }}
+          >
+            <Keyboard className="h-4 w-4 mr-2" />
+            Input manual (angka tidak terbaca kamera)
+          </Button>
+
+
           {result && !aiLoading && (
             <Card className="p-4 space-y-4">
               <div>
