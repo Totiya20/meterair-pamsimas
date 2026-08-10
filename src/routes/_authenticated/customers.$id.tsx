@@ -234,9 +234,26 @@ function CustomerDetail() {
                   • +{Number(r.usage).toLocaleString("id-ID")} m³
                 </p>
               </div>
-              <p className="text-sm font-semibold tabular-nums text-sky-600">
-                Rp {Number(r.cost).toLocaleString("id-ID")}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold tabular-nums text-sky-600">
+                  Rp {Number(r.cost).toLocaleString("id-ID")}
+                </p>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeReading(r.id)}
+                    disabled={deletingReading === r.id}
+                    aria-label="Hapus riwayat pembacaan"
+                    className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  >
+                    {deletingReading === r.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+
             </div>
           ))}
         </div>
