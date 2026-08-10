@@ -50,7 +50,12 @@ function AuthedLayout() {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 grid grid-cols-5 z-40">
+      <nav
+        className={`fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 grid z-40 ${
+          isAdmin ? "grid-cols-6" : "grid-cols-5"
+        }`}
+      >
+
         {tabs.map((t) => {
           const active = t.exact ? pathname === t.to : pathname.startsWith(t.to);
           const Icon = t.icon;
