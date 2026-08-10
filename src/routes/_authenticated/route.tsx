@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { isAdmin } = useIsAdmin();
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -32,7 +33,9 @@ function AuthedLayout() {
     { to: "/customers", label: "Pelanggan", icon: Users },
     { to: "/report", label: "Laporan", icon: FileText },
     { to: "/qr-print", label: "QR", icon: QrCode },
+    ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-sky-50 to-white">
