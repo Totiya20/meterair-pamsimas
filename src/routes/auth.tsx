@@ -33,6 +33,26 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  async function logAttempt(logEmail: string, status: "berhasil" | "gagal") {
+    try {
+      await supabase.from("login_logs").insert({ email: logEmail, status });
+    } catch {
+      /* logging must never block login */
+    }
+  }
+
+  async function goToRoleDashboard() {
+    const { data: u } = await supabase.auth.getUser();
+    if (u.user) {
+      const { data: admin } = await supabase.rpc("is_admin", { _user_id: u.user.id });
+      if (admin) {
+        navigate({ to: "/admin", replace: true });
+        return;
+      }
+    }
+    navigate({ to: "/", replace: true });
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -45,14 +65,17 @@ function AuthPage() {
           password: cleanPassword,
         });
         if (error) {
+          await logAttempt(cleanEmail, "gagal");
           throw new Error(
             error.message === "Invalid login credentials"
               ? "Email atau password belum cocok. Jika pernah daftar ulang, gunakan password lama karena daftar ulang tidak mengganti password."
               : error.message,
           );
         }
+        await logAttempt(cleanEmail, "berhasil");
         toast.success("Berhasil masuk.");
-        navigate({ to: "/", replace: true });
+        await goToRoleDashboard();
+
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
@@ -64,10 +87,12 @@ function AuthPage() {
         });
         if (error) throw error;
         if (data.session) {
+          await logAttempt(cleanEmail, "berhasil");
           toast.success("Akun dibuat dan langsung masuk.");
-          navigate({ to: "/", replace: true });
+          await goToRoleDashboard();
           return;
         }
+
 
         if (data.user?.identities && data.user.identities.length === 0) {
           toast.error("Email ini sudah terdaftar. Daftar ulang tidak mengganti password.");

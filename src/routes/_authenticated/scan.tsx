@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Camera, Loader2, RotateCcw, Receipt, Save, QrCode, X, User, Phone, MapPin } from "lucide-react";
+import { Camera, Loader2, RotateCcw, Receipt, Save, QrCode, X, User, Phone, MapPin, Keyboard } from "lucide-react";
 import { toast } from "sonner";
 import { QrScanner } from "@/components/QrScanner";
 import { z } from "zod";
@@ -270,6 +270,22 @@ function ScanPage() {
             />
           </Card>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setPreview(null);
+              setAiLoading(false);
+              setOverrideReading("");
+              setResult({ reading: null, notes: "Input manual oleh petugas" });
+            }}
+          >
+            <Keyboard className="h-4 w-4 mr-2" />
+            Input manual (angka tidak terbaca kamera)
+          </Button>
+
+
           {result && !aiLoading && (
             <Card className="p-4 space-y-4">
               <div>
@@ -285,12 +301,17 @@ function ScanPage() {
                   />
                   <span className="text-base text-slate-500">m³</span>
                 </div>
-                {result.confidence && (
+                {result.confidence ? (
                   <p className="mt-1.5 text-[11px] text-slate-500">
                     Keyakinan AI: <span className="font-medium uppercase">{result.confidence}</span>
                     {result.notes && ` — ${result.notes}`}
                   </p>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    Ketik angka meteran secara manual, lalu simpan.
+                  </p>
                 )}
+
               </div>
 
               {cost != null && (

@@ -7,6 +7,8 @@ import { ArrowLeft, Camera, Pencil, Trash2, Loader2, History, MapPin, Phone, Use
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CustomerForm, type CustomerFormValues } from "@/components/CustomerForm";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 export const Route = createFileRoute("/_authenticated/customers/$id")({
   head: () => ({ meta: [{ title: "Detail Pelanggan — MeterAir Pamsimas" }] }),
@@ -17,8 +19,11 @@ function CustomerDetail() {
   const { id } = useParams({ from: "/_authenticated/customers/$id" });
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { isAdmin } = useIsAdmin();
   const [editing, setEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingReading, setDeletingReading] = useState<string | null>(null);
+
 
   const customer = useQuery({
     queryKey: ["customer", id],
@@ -80,6 +85,27 @@ function CustomerDetail() {
     toast.success("Pelanggan dihapus.");
     navigate({ to: "/customers" });
   }
+
+  async function removeReading(readingId: string) {
+    if (
+      !confirm(
+        "Hapus riwayat pembacaan ini secara permanen? Tindakan ini tidak bisa dibatalkan.",
+      )
+    )
+      return;
+    setDeletingReading(readingId);
+    const { error } = await supabase.from("readings").delete().eq("id", readingId);
+    setDeletingReading(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Riwayat pembacaan dihapus.");
+    qc.invalidateQueries({ queryKey: ["readings", id] });
+    qc.invalidateQueries({ queryKey: ["customer", id] });
+  }
+
+
 
   if (customer.isLoading) {
     return (
@@ -208,9 +234,26 @@ function CustomerDetail() {
                   • +{Number(r.usage).toLocaleString("id-ID")} m³
                 </p>
               </div>
-              <p className="text-sm font-semibold tabular-nums text-sky-600">
-                Rp {Number(r.cost).toLocaleString("id-ID")}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold tabular-nums text-sky-600">
+                  Rp {Number(r.cost).toLocaleString("id-ID")}
+                </p>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeReading(r.id)}
+                    disabled={deletingReading === r.id}
+                    aria-label="Hapus riwayat pembacaan"
+                    className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  >
+                    {deletingReading === r.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+
             </div>
           ))}
         </div>
