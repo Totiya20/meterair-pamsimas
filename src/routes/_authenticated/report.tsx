@@ -176,12 +176,13 @@ function ReportPage() {
 
   function exportExcel() {
     const periode = `${MONTHS[monthNum - 1]} ${year}`;
-    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status"];
+    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status", "Ket"];
     const body = perCustomer.map((r, i) => [
       i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, r.dibayar, r.belum,
       r.belum === 0 ? "LUNAS" : "BELUM",
+      r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
     ]);
-    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, ""];
+    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, "", ""];
 
     const aoa: (string | number)[][] = [
       ["LAPORAN REKAPITULASI PAMSIMAS"],
@@ -191,7 +192,10 @@ function ReportPage() {
       header,
       ...body,
       footer,
+      [],
+      ["Total Tunggakan (semua periode)", arrearsTotal.data ?? 0],
     ];
+
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [
