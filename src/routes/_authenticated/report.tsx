@@ -243,7 +243,7 @@ function ReportPage() {
 
     autoTable(doc, {
       startY: 30,
-      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum"]],
+      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum", "Ket"]],
       body: perCustomer.map((r, i) => [
         i + 1,
         r.code,
@@ -254,6 +254,7 @@ function ReportPage() {
         rupiah(r.total),
         r.dibayar > 0 ? rupiah(r.dibayar) : "-",
         r.belum > 0 ? rupiah(r.belum) : "-",
+        r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
       ]),
       foot: [[
         "", "", "TOTAL",
@@ -263,6 +264,7 @@ function ReportPage() {
         rupiah(totalHarga),
         rupiah(totalDibayar),
         rupiah(totalBelum),
+        "",
       ]],
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: "bold" },
@@ -276,11 +278,25 @@ function ReportPage() {
         6: { halign: "right" },
         7: { halign: "right" },
         8: { halign: "right" },
+        9: { cellWidth: 26 },
       },
     });
 
+    const endY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 30;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Tunggakan (semua periode): ${rupiah(arrearsTotal.data ?? 0)}`, 14, endY + 8);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(
+      "Rumus: pemakaian < 50 m3 dibatasi maksimal Rp 100.000; pemakaian >= 50 m3 diskon 50%.",
+      14,
+      endY + 14,
+    );
+
     doc.save(`laporan-pamsimas-${monthKey}.pdf`);
   }
+
 
   return (
     <div className="px-5 pt-4">
