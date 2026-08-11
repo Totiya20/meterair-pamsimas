@@ -200,12 +200,12 @@ function ReportPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [
       { wch: 5 }, { wch: 14 }, { wch: 32 }, { wch: 13 },
-      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
     ];
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 10 } },
     ];
     ws["!freeze"] = { xSplit: 0, ySplit: 5 };
 
@@ -220,6 +220,9 @@ function ReportPage() {
         if (cell && typeof cell.v === "number") cell.z = '"Rp"#,##0';
       }
     }
+    const arrearsCell = ws[XLSX.utils.encode_cell({ r: lastRow + 2, c: 1 })];
+    if (arrearsCell && typeof arrearsCell.v === "number") arrearsCell.z = '"Rp"#,##0';
+
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Laporan ${MONTHS[monthNum - 1]}`);
