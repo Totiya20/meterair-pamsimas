@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Users, Camera, QrCode, LogOut, FileText, ShieldCheck } from "lucide-react";
+import { Home, Users, Camera, QrCode, LogOut, FileText, ShieldCheck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -32,6 +32,7 @@ function AuthedLayout() {
     { to: "/scan", label: "Scan", icon: Camera },
     { to: "/customers", label: "Pelanggan", icon: Users },
     { to: "/report", label: "Laporan", icon: FileText },
+    { to: "/arrears", label: "Tunggakan", icon: Wallet },
     { to: "/qr-print", label: "QR", icon: QrCode },
     ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];
@@ -52,7 +53,7 @@ function AuthedLayout() {
 
       <nav
         className={`fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 grid z-40 ${
-          isAdmin ? "grid-cols-6" : "grid-cols-5"
+          isAdmin ? "grid-cols-7" : "grid-cols-6"
         }`}
       >
 

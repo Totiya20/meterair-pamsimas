@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, FileSpreadsheet, FileText } from "lucide-react";
+import { Loader2, FileSpreadsheet, FileText, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -39,15 +39,8 @@ type Row = {
   customers: { name: string; tariff: number; customer_code: string; address: string } | null;
 };
 
-const ABONEMEN = 5000;
+import { ABONEMEN, MONTHS, computeBill, rupiah } from "@/lib/billing";
 
-const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-
-const MONTHS = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
 
 function ReportPage() {
   const qc = useQueryClient();
@@ -92,12 +85,6 @@ function ReportPage() {
   });
 
   const rows = data ?? [];
-  const totalKubik = rows.reduce((s, r) => s + Number(r.usage), 0);
-  const totalAbonemen = rows.length * ABONEMEN;
-  const totalHargaAir = rows.reduce((s, r) => s + Number(r.cost), 0);
-  const totalHarga = totalHargaAir + totalAbonemen;
-  const totalDibayar = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.cost) + ABONEMEN, 0);
-  const totalBelum = totalHarga - totalDibayar;
 
   // Ringkasan per pelanggan (agregasi jika ada >1 pembacaan/bulan)
   type Summary = {
@@ -107,54 +94,95 @@ function ReportPage() {
     kubik: number;
     harga: number;
     abonemen: number;
+    /** tagihan akhir setelah batas Rp100rb / diskon 50% */
     total: number;
+    base: number;
+    rule: "normal" | "batas" | "diskon";
     dibayar: number;
     belum: number;
     count: number;
     ids: string[];
+    allPaid: boolean;
   };
   const perCustomer = useMemo<Summary[]>(() => {
-    const map = new Map<string, Summary>();
+    type Acc = {
+      customer_id: string; name: string; code: string; tariff: number;
+      kubik: number; harga: number; count: number; ids: string[]; allPaid: boolean;
+    };
+    const map = new Map<string, Acc>();
     for (const r of rows) {
       const key = r.customer_id;
       const existing = map.get(key);
-      const total = Number(r.cost) + ABONEMEN;
       if (existing) {
         existing.kubik += Number(r.usage);
         existing.harga += Number(r.cost);
-        existing.abonemen += ABONEMEN;
-        existing.total += total;
-        existing.dibayar += r.paid ? total : 0;
-        existing.belum += r.paid ? 0 : total;
         existing.count += 1;
         existing.ids.push(r.id);
+        existing.allPaid = existing.allPaid && r.paid;
       } else {
         map.set(key, {
           customer_id: key,
           name: r.customers?.name ?? "-",
           code: r.customers?.customer_code ?? "-",
+          tariff: Number(r.customers?.tariff ?? 4000),
           kubik: Number(r.usage),
           harga: Number(r.cost),
-          abonemen: ABONEMEN,
-          total,
-          dibayar: r.paid ? total : 0,
-          belum: r.paid ? 0 : total,
           count: 1,
           ids: [r.id],
+          allPaid: r.paid,
         });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values())
+      .map((a) => {
+        const bill = computeBill(a.kubik, a.tariff);
+        return {
+          customer_id: a.customer_id,
+          name: a.name,
+          code: a.code,
+          kubik: a.kubik,
+          harga: bill.hargaAir,
+          abonemen: bill.abonemen,
+          total: bill.total,
+          base: bill.base,
+          rule: bill.rule,
+          dibayar: a.allPaid ? bill.total : 0,
+          belum: a.allPaid ? 0 : bill.total,
+          count: a.count,
+          ids: a.ids,
+          allPaid: a.allPaid,
+        } satisfies Summary;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
+
+  const totalKubik = perCustomer.reduce((s, r) => s + r.kubik, 0);
+  const totalAbonemen = perCustomer.reduce((s, r) => s + r.abonemen, 0);
+  const totalHargaAir = perCustomer.reduce((s, r) => s + r.harga, 0);
+  const totalHarga = perCustomer.reduce((s, r) => s + r.total, 0);
+  const totalDibayar = perCustomer.reduce((s, r) => s + r.dibayar, 0);
+  const totalBelum = perCustomer.reduce((s, r) => s + r.belum, 0);
+
+  const arrearsTotal = useQuery({
+    queryKey: ["arrears-total"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("arrears").select("amount, paid").eq("paid", false);
+      if (error) throw error;
+      return (data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+    },
+  });
+
+
 
   function exportExcel() {
     const periode = `${MONTHS[monthNum - 1]} ${year}`;
-    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status"];
+    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status", "Ket"];
     const body = perCustomer.map((r, i) => [
       i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, r.dibayar, r.belum,
       r.belum === 0 ? "LUNAS" : "BELUM",
+      r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
     ]);
-    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, ""];
+    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, "", ""];
 
     const aoa: (string | number)[][] = [
       ["LAPORAN REKAPITULASI PAMSIMAS"],
@@ -164,17 +192,20 @@ function ReportPage() {
       header,
       ...body,
       footer,
+      [],
+      ["Total Tunggakan (semua periode)", arrearsTotal.data ?? 0],
     ];
+
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [
       { wch: 5 }, { wch: 14 }, { wch: 32 }, { wch: 13 },
-      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
     ];
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 10 } },
     ];
     ws["!freeze"] = { xSplit: 0, ySplit: 5 };
 
@@ -189,6 +220,9 @@ function ReportPage() {
         if (cell && typeof cell.v === "number") cell.z = '"Rp"#,##0';
       }
     }
+    const arrearsCell = ws[XLSX.utils.encode_cell({ r: lastRow + 2, c: 1 })];
+    if (arrearsCell && typeof arrearsCell.v === "number") arrearsCell.z = '"Rp"#,##0';
+
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Laporan ${MONTHS[monthNum - 1]}`);
@@ -209,7 +243,7 @@ function ReportPage() {
 
     autoTable(doc, {
       startY: 30,
-      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum"]],
+      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum", "Ket"]],
       body: perCustomer.map((r, i) => [
         i + 1,
         r.code,
@@ -220,6 +254,7 @@ function ReportPage() {
         rupiah(r.total),
         r.dibayar > 0 ? rupiah(r.dibayar) : "-",
         r.belum > 0 ? rupiah(r.belum) : "-",
+        r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
       ]),
       foot: [[
         "", "", "TOTAL",
@@ -229,6 +264,7 @@ function ReportPage() {
         rupiah(totalHarga),
         rupiah(totalDibayar),
         rupiah(totalBelum),
+        "",
       ]],
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: "bold" },
@@ -242,11 +278,25 @@ function ReportPage() {
         6: { halign: "right" },
         7: { halign: "right" },
         8: { halign: "right" },
+        9: { cellWidth: 26 },
       },
     });
 
+    const endY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 30;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Tunggakan (semua periode): ${rupiah(arrearsTotal.data ?? 0)}`, 14, endY + 8);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(
+      "Rumus: pemakaian < 50 m3 dibatasi maksimal Rp 100.000; pemakaian >= 50 m3 diskon 50%.",
+      14,
+      endY + 14,
+    );
+
     doc.save(`laporan-pamsimas-${monthKey}.pdf`);
   }
+
 
   return (
     <div className="px-5 pt-4">
@@ -309,6 +359,26 @@ function ReportPage() {
         </Card>
       </div>
 
+      <Link to="/arrears" className="block mb-3">
+        <Card className="p-3 flex items-center gap-3 hover:bg-amber-50/60 transition border-amber-200 bg-amber-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] text-amber-700">Total Tunggakan (semua periode)</div>
+            <div className="text-base font-bold text-amber-900">
+              {arrearsTotal.isLoading ? "…" : rupiah(arrearsTotal.data ?? 0)}
+            </div>
+          </div>
+          <span className="text-[11px] font-medium text-amber-700">Lihat detail →</span>
+        </Card>
+      </Link>
+
+      <p className="text-[11px] text-slate-500 mb-3">
+        Rumus tagihan: pemakaian &lt; 50 m³ dibatasi maksimal Rp 100.000; pemakaian ≥ 50 m³ mendapat diskon 50%.
+      </p>
+
+
       <Card className="p-0 overflow-hidden">
         <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
           <div className="text-xs font-semibold text-slate-700">Ringkasan Per Pelanggan</div>
@@ -356,12 +426,18 @@ function ReportPage() {
                     <td className="p-2 text-right tabular-nums text-slate-600">{rupiah(r.abonemen)}</td>
                     <td className="p-2 text-right tabular-nums font-semibold">
                       <div>{rupiah(r.total)}</div>
+                      {r.rule !== "normal" && (
+                        <div className="text-[10px] font-normal text-amber-600">
+                          {r.rule === "diskon" ? "diskon 50%" : "batas Rp100rb"}
+                        </div>
+                      )}
                       {r.belum > 0 ? (
                         <div className="text-[10px] font-normal text-rose-600">Sisa {rupiah(r.belum)}</div>
                       ) : (
                         <div className="text-[10px] font-normal text-emerald-600">Lunas</div>
                       )}
                     </td>
+
                     <td className="p-2 text-center">
                       <Checkbox
                         checked={fullyPaid}

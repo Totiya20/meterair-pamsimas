@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CustomerForm, type CustomerFormValues } from "@/components/CustomerForm";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { computeBill } from "@/lib/billing";
 
 
 export const Route = createFileRoute("/_authenticated/customers/$id")({
@@ -236,8 +237,9 @@ function CustomerDetail() {
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold tabular-nums text-sky-600">
-                  Rp {Number(r.cost).toLocaleString("id-ID")}
+                  Rp {computeBill(Number(r.usage), Number(c.tariff)).total.toLocaleString("id-ID")}
                 </p>
+
                 {isAdmin && (
                   <button
                     onClick={() => removeReading(r.id)}

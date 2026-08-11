@@ -10,6 +10,7 @@ const logoUrl = "/pamsimas-logo.jpg";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Masuk — MeterAir Pamsimas" },
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/auth")({
   }),
   component: AuthPage,
 });
+
 
 function AuthPage() {
   const navigate = useNavigate();

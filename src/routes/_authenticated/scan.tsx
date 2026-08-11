@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Camera, Loader2, RotateCcw, Receipt, Save, QrCode, X, User, Phone, MapPin, Keyboard } from "lucide-react";
 import { toast } from "sonner";
+import { ABONEMEN, computeBill } from "@/lib/billing";
 import { QrScanner } from "@/components/QrScanner";
 import { z } from "zod";
 
@@ -111,6 +112,7 @@ function ScanPage() {
   const rawUsage = finalReading != null && Number.isFinite(finalReading) ? finalReading - prev : null;
   const usage = rawUsage != null ? Math.max(0, rawUsage) : null;
   const cost = usage != null ? usage * tariff : null;
+  const bill = usage != null ? computeBill(usage, tariff) : null;
 
   async function saveReading() {
     if (!customer || finalReading == null || !Number.isFinite(finalReading)) {
@@ -320,8 +322,15 @@ function ScanPage() {
                     <Receipt className="h-3.5 w-3.5" /> Tagihan bulan ini
                   </div>
                   <div className="mt-2 text-3xl font-bold tabular-nums">
-                    Rp {cost.toLocaleString("id-ID")}
+                    Rp {(bill?.total ?? cost).toLocaleString("id-ID")}
                   </div>
+                  {bill && bill.rule !== "normal" && (
+                    <div className="mt-1 text-[11px] text-sky-100">
+                      {bill.rule === "diskon"
+                        ? `Diskon 50% dari Rp ${bill.base.toLocaleString("id-ID")} (pemakaian ≥ 50 m³)`
+                        : `Dibatasi maksimal Rp 100.000 (dari Rp ${bill.base.toLocaleString("id-ID")})`}
+                    </div>
+                  )}
                   <div className="mt-3 pt-3 border-t border-white/15 space-y-1 text-sm text-sky-50">
                     <div className="flex justify-between">
                       <span>Pemakaian</span>
@@ -331,7 +340,7 @@ function ScanPage() {
                     </div>
                     <div className="flex justify-between text-xs text-sky-100">
                       <span>{finalReading?.toLocaleString("id-ID")} − {prev.toLocaleString("id-ID")}</span>
-                      <span>Tarif Rp {tariff.toLocaleString("id-ID")}/m³</span>
+                      <span>Tarif Rp {tariff.toLocaleString("id-ID")}/m³ + abonemen Rp {ABONEMEN.toLocaleString("id-ID")}</span>
                     </div>
                   </div>
                 </div>
