@@ -403,12 +403,18 @@ function ReportPage() {
                     <td className="p-2 text-right tabular-nums text-slate-600">{rupiah(r.abonemen)}</td>
                     <td className="p-2 text-right tabular-nums font-semibold">
                       <div>{rupiah(r.total)}</div>
+                      {r.rule !== "normal" && (
+                        <div className="text-[10px] font-normal text-amber-600">
+                          {r.rule === "diskon" ? "diskon 50%" : "batas Rp100rb"}
+                        </div>
+                      )}
                       {r.belum > 0 ? (
                         <div className="text-[10px] font-normal text-rose-600">Sisa {rupiah(r.belum)}</div>
                       ) : (
                         <div className="text-[10px] font-normal text-emerald-600">Lunas</div>
                       )}
                     </td>
+
                     <td className="p-2 text-center">
                       <Checkbox
                         checked={fullyPaid}
