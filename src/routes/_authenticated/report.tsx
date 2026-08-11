@@ -39,15 +39,8 @@ type Row = {
   customers: { name: string; tariff: number; customer_code: string; address: string } | null;
 };
 
-const ABONEMEN = 5000;
+import { ABONEMEN, MONTHS, computeBill, rupiah } from "@/lib/billing";
 
-const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-
-const MONTHS = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
 
 function ReportPage() {
   const qc = useQueryClient();
