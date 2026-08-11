@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { ShieldCheck, ScrollText, Loader2, Trash2 } from "lucide-react";
+import { ShieldCheck, ScrollText, Loader2, Trash2, UserCog } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({ meta: [{ title: "Dashboard Admin — MeterAir Pamsimas" }] }),
@@ -44,6 +44,18 @@ function AdminHome() {
             <div className="flex-1">
               <p className="font-semibold text-slate-900">Log aktivitas login</p>
               <p className="text-xs text-slate-500">Email, waktu, dan status login terbaru</p>
+            </div>
+          </Card>
+        </Link>
+
+        <Link to="/admin/account" className="block">
+          <Card className="p-4 flex items-center gap-3 hover:bg-sky-50/50 transition">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-800 text-white">
+              <UserCog className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-slate-900">Pengaturan akun</p>
+              <p className="text-xs text-slate-500">Ubah email & password akun admin ini</p>
             </div>
           </Card>
         </Link>

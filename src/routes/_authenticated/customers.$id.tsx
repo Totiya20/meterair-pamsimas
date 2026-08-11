@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CustomerForm, type CustomerFormValues } from "@/components/CustomerForm";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { computeBill } from "@/lib/billing";
 
 
 export const Route = createFileRoute("/_authenticated/customers/$id")({
