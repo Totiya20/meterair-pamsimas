@@ -85,12 +85,6 @@ function ReportPage() {
   });
 
   const rows = data ?? [];
-  const totalKubik = rows.reduce((s, r) => s + Number(r.usage), 0);
-  const totalAbonemen = rows.length * ABONEMEN;
-  const totalHargaAir = rows.reduce((s, r) => s + Number(r.cost), 0);
-  const totalHarga = totalHargaAir + totalAbonemen;
-  const totalDibayar = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.cost) + ABONEMEN, 0);
-  const totalBelum = totalHarga - totalDibayar;
 
   // Ringkasan per pelanggan (agregasi jika ada >1 pembacaan/bulan)
   type Summary = {
@@ -100,45 +94,85 @@ function ReportPage() {
     kubik: number;
     harga: number;
     abonemen: number;
+    /** tagihan akhir setelah batas Rp100rb / diskon 50% */
     total: number;
+    base: number;
+    rule: "normal" | "batas" | "diskon";
     dibayar: number;
     belum: number;
     count: number;
     ids: string[];
+    allPaid: boolean;
   };
   const perCustomer = useMemo<Summary[]>(() => {
-    const map = new Map<string, Summary>();
+    type Acc = {
+      customer_id: string; name: string; code: string; tariff: number;
+      kubik: number; harga: number; count: number; ids: string[]; allPaid: boolean;
+    };
+    const map = new Map<string, Acc>();
     for (const r of rows) {
       const key = r.customer_id;
       const existing = map.get(key);
-      const total = Number(r.cost) + ABONEMEN;
       if (existing) {
         existing.kubik += Number(r.usage);
         existing.harga += Number(r.cost);
-        existing.abonemen += ABONEMEN;
-        existing.total += total;
-        existing.dibayar += r.paid ? total : 0;
-        existing.belum += r.paid ? 0 : total;
         existing.count += 1;
         existing.ids.push(r.id);
+        existing.allPaid = existing.allPaid && r.paid;
       } else {
         map.set(key, {
           customer_id: key,
           name: r.customers?.name ?? "-",
           code: r.customers?.customer_code ?? "-",
+          tariff: Number(r.customers?.tariff ?? 4000),
           kubik: Number(r.usage),
           harga: Number(r.cost),
-          abonemen: ABONEMEN,
-          total,
-          dibayar: r.paid ? total : 0,
-          belum: r.paid ? 0 : total,
           count: 1,
           ids: [r.id],
+          allPaid: r.paid,
         });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values())
+      .map((a) => {
+        const bill = computeBill(a.kubik, a.tariff);
+        return {
+          customer_id: a.customer_id,
+          name: a.name,
+          code: a.code,
+          kubik: a.kubik,
+          harga: bill.hargaAir,
+          abonemen: bill.abonemen,
+          total: bill.total,
+          base: bill.base,
+          rule: bill.rule,
+          dibayar: a.allPaid ? bill.total : 0,
+          belum: a.allPaid ? 0 : bill.total,
+          count: a.count,
+          ids: a.ids,
+          allPaid: a.allPaid,
+        } satisfies Summary;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
+
+  const totalKubik = perCustomer.reduce((s, r) => s + r.kubik, 0);
+  const totalAbonemen = perCustomer.reduce((s, r) => s + r.abonemen, 0);
+  const totalHargaAir = perCustomer.reduce((s, r) => s + r.harga, 0);
+  const totalHarga = perCustomer.reduce((s, r) => s + r.total, 0);
+  const totalDibayar = perCustomer.reduce((s, r) => s + r.dibayar, 0);
+  const totalBelum = perCustomer.reduce((s, r) => s + r.belum, 0);
+
+  const arrearsTotal = useQuery({
+    queryKey: ["arrears-total"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("arrears").select("amount, paid").eq("paid", false);
+      if (error) throw error;
+      return (data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+    },
+  });
+
+
 
   function exportExcel() {
     const periode = `${MONTHS[monthNum - 1]} ${year}`;
