@@ -336,6 +336,26 @@ function ReportPage() {
         </Card>
       </div>
 
+      <Link to="/arrears" className="block mb-3">
+        <Card className="p-3 flex items-center gap-3 hover:bg-amber-50/60 transition border-amber-200 bg-amber-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] text-amber-700">Total Tunggakan (semua periode)</div>
+            <div className="text-base font-bold text-amber-900">
+              {arrearsTotal.isLoading ? "…" : rupiah(arrearsTotal.data ?? 0)}
+            </div>
+          </div>
+          <span className="text-[11px] font-medium text-amber-700">Lihat detail →</span>
+        </Card>
+      </Link>
+
+      <p className="text-[11px] text-slate-500 mb-3">
+        Rumus tagihan: pemakaian &lt; 50 m³ dibatasi maksimal Rp 100.000; pemakaian ≥ 50 m³ mendapat diskon 50%.
+      </p>
+
+
       <Card className="p-0 overflow-hidden">
         <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
           <div className="text-xs font-semibold text-slate-700">Ringkasan Per Pelanggan</div>
