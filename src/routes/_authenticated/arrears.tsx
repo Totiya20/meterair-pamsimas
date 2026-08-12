@@ -176,9 +176,9 @@ function ArrearsPage() {
           <div className="text-[11px] text-rose-700">Total Tunggakan</div>
           <div className="text-base font-bold text-rose-800">{rupiah(totalBelum)}</div>
         </Card>
-        <Card className="p-3 bg-emerald-50 border-emerald-200">
-          <div className="text-[11px] text-emerald-700">Sudah Lunas</div>
-          <div className="text-base font-bold text-emerald-800">{rupiah(totalLunas)}</div>
+        <Card className="p-3 bg-slate-50 border-slate-200">
+          <div className="text-[11px] text-slate-600">Entri Aktif</div>
+          <div className="text-base font-bold text-slate-800">{rows.length} bulan</div>
         </Card>
       </div>
 
