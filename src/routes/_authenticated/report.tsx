@@ -259,7 +259,7 @@ function ReportPage() {
 
     autoTable(doc, {
       startY: 30,
-      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum", "Ket"]],
+      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Tunggakan", "Dibayar", "Belum", "Ket"]],
       body: perCustomer.map((r, i) => [
         i + 1,
         r.code,
@@ -268,6 +268,7 @@ function ReportPage() {
         rupiah(r.harga),
         rupiah(r.abonemen),
         rupiah(r.total),
+        arrearOf(r.customer_id) > 0 ? rupiah(arrearOf(r.customer_id)) : "-",
         r.dibayar > 0 ? rupiah(r.dibayar) : "-",
         r.belum > 0 ? rupiah(r.belum) : "-",
         r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
@@ -278,6 +279,7 @@ function ReportPage() {
         rupiah(totalHargaAir),
         rupiah(totalAbonemen),
         rupiah(totalHarga),
+        rupiah(perCustomer.reduce((s, r) => s + arrearOf(r.customer_id), 0)),
         rupiah(totalDibayar),
         rupiah(totalBelum),
         "",
@@ -294,7 +296,8 @@ function ReportPage() {
         6: { halign: "right" },
         7: { halign: "right" },
         8: { halign: "right" },
-        9: { cellWidth: 26 },
+        9: { halign: "right" },
+        10: { cellWidth: 26 },
       },
     });
 
@@ -305,10 +308,11 @@ function ReportPage() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(
-      "Rumus: pemakaian < 50 m3 dibatasi maksimal Rp 100.000; pemakaian >= 50 m3 diskon 50%.",
+      "Rumus: harga air (m3 x tarif) dibatasi maks Rp 100.000 untuk pemakaian < 50 m3; pemakaian >= 50 m3 diskon 50%. Total = harga air + abonemen.",
       14,
       endY + 14,
     );
+
 
     doc.save(`laporan-pamsimas-${monthKey}.pdf`);
   }
