@@ -163,6 +163,19 @@ function ReportPage() {
   const totalDibayar = perCustomer.reduce((s, r) => s + r.dibayar, 0);
   const totalBelum = perCustomer.reduce((s, r) => s + r.belum, 0);
 
+  const arrearsByCustomer = useQuery({
+    queryKey: ["arrears-by-customer"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("arrears").select("customer_id, amount").eq("paid", false);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const r of data ?? []) map[r.customer_id] = (map[r.customer_id] ?? 0) + Number(r.amount);
+      return map;
+    },
+  });
+  const arrearMap = arrearsByCustomer.data ?? {};
+  const arrearOf = (cid: string) => arrearMap[cid] ?? 0;
+
   const arrearsTotal = useQuery({
     queryKey: ["arrears-total"],
     queryFn: async () => {
@@ -174,15 +187,17 @@ function ReportPage() {
 
 
 
+
   function exportExcel() {
     const periode = `${MONTHS[monthNum - 1]} ${year}`;
-    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status", "Ket"];
+    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Tunggakan", "Dibayar", "Belum Dibayar", "Status", "Ket"];
     const body = perCustomer.map((r, i) => [
-      i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, r.dibayar, r.belum,
+      i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, arrearOf(r.customer_id), r.dibayar, r.belum,
       r.belum === 0 ? "LUNAS" : "BELUM",
       r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
     ]);
-    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, "", ""];
+    const totalTunggakanTabel = perCustomer.reduce((s, r) => s + arrearOf(r.customer_id), 0);
+    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalTunggakanTabel, totalDibayar, totalBelum, "", ""];
 
     const aoa: (string | number)[][] = [
       ["LAPORAN REKAPITULASI PAMSIMAS"],
@@ -200,12 +215,12 @@ function ReportPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [
       { wch: 5 }, { wch: 14 }, { wch: 32 }, { wch: 13 },
-      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
     ];
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 10 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 11 } },
     ];
     ws["!freeze"] = { xSplit: 0, ySplit: 5 };
 
@@ -215,13 +230,14 @@ function ReportPage() {
         const cell = ws[XLSX.utils.encode_cell({ r, c })];
         if (cell && typeof cell.v === "number") cell.z = "#,##0.00";
       }
-      for (const c of [4, 5, 6, 7, 8]) {
+      for (const c of [4, 5, 6, 7, 8, 9]) {
         const cell = ws[XLSX.utils.encode_cell({ r, c })];
         if (cell && typeof cell.v === "number") cell.z = '"Rp"#,##0';
       }
     }
     const arrearsCell = ws[XLSX.utils.encode_cell({ r: lastRow + 2, c: 1 })];
     if (arrearsCell && typeof arrearsCell.v === "number") arrearsCell.z = '"Rp"#,##0';
+
 
 
     const wb = XLSX.utils.book_new();
@@ -243,7 +259,7 @@ function ReportPage() {
 
     autoTable(doc, {
       startY: 30,
-      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum", "Ket"]],
+      head: [["No", "Kode", "Pelanggan", "Kubikasi (m3)", "Harga Air", "Abonemen", "Total", "Tunggakan", "Dibayar", "Belum", "Ket"]],
       body: perCustomer.map((r, i) => [
         i + 1,
         r.code,
@@ -252,6 +268,7 @@ function ReportPage() {
         rupiah(r.harga),
         rupiah(r.abonemen),
         rupiah(r.total),
+        arrearOf(r.customer_id) > 0 ? rupiah(arrearOf(r.customer_id)) : "-",
         r.dibayar > 0 ? rupiah(r.dibayar) : "-",
         r.belum > 0 ? rupiah(r.belum) : "-",
         r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
@@ -262,6 +279,7 @@ function ReportPage() {
         rupiah(totalHargaAir),
         rupiah(totalAbonemen),
         rupiah(totalHarga),
+        rupiah(perCustomer.reduce((s, r) => s + arrearOf(r.customer_id), 0)),
         rupiah(totalDibayar),
         rupiah(totalBelum),
         "",
@@ -278,7 +296,8 @@ function ReportPage() {
         6: { halign: "right" },
         7: { halign: "right" },
         8: { halign: "right" },
-        9: { cellWidth: 26 },
+        9: { halign: "right" },
+        10: { cellWidth: 26 },
       },
     });
 
@@ -289,10 +308,11 @@ function ReportPage() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(
-      "Rumus: pemakaian < 50 m3 dibatasi maksimal Rp 100.000; pemakaian >= 50 m3 diskon 50%.",
+      "Rumus: harga air (m3 x tarif) dibatasi maks Rp 100.000 untuk pemakaian < 50 m3; pemakaian >= 50 m3 diskon 50%. Total = harga air + abonemen.",
       14,
       endY + 14,
     );
+
 
     doc.save(`laporan-pamsimas-${monthKey}.pdf`);
   }
@@ -375,7 +395,7 @@ function ReportPage() {
       </Link>
 
       <p className="text-[11px] text-slate-500 mb-3">
-        Rumus tagihan: pemakaian &lt; 50 m³ dibatasi maksimal Rp 100.000; pemakaian ≥ 50 m³ mendapat diskon 50%.
+        Rumus: harga air (m³ × tarif) dibatasi maksimal Rp 100.000 untuk pemakaian &lt; 50 m³; pemakaian ≥ 50 m³ diskon 50%. Total = harga air + abonemen.
       </p>
 
 

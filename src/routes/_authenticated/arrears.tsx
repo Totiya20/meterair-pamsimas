@@ -77,6 +77,7 @@ function ArrearsPage() {
       const { data, error } = await supabase
         .from("arrears")
         .select("id, customer_id, month, year, amount, paid, notes, customers(name, customer_code)")
+        .eq("paid", false)
         .order("year", { ascending: false })
         .order("month", { ascending: false });
       if (error) throw error;
@@ -109,18 +110,22 @@ function ArrearsPage() {
       setNotes("");
       qc.invalidateQueries({ queryKey: ["arrears"] });
       qc.invalidateQueries({ queryKey: ["arrears-total"] });
+      qc.invalidateQueries({ queryKey: ["arrears-by-customer"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal menyimpan."),
   });
 
-  const togglePaid = useMutation({
-    mutationFn: async ({ id, paid }: { id: string; paid: boolean }) => {
-      const { error } = await supabase.from("arrears").update({ paid }).eq("id", id);
+  /** Centang "Lunas" = entri langsung dihapus dari daftar tunggakan. */
+  const settleArrear = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("arrears").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Tunggakan lunas & dihapus dari daftar.");
       qc.invalidateQueries({ queryKey: ["arrears"] });
       qc.invalidateQueries({ queryKey: ["arrears-total"] });
+      qc.invalidateQueries({ queryKey: ["arrears-by-customer"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal memperbarui."),
   });
@@ -134,13 +139,14 @@ function ArrearsPage() {
       toast.success("Entri tunggakan dihapus.");
       qc.invalidateQueries({ queryKey: ["arrears"] });
       qc.invalidateQueries({ queryKey: ["arrears-total"] });
+      qc.invalidateQueries({ queryKey: ["arrears-by-customer"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal menghapus."),
   });
 
   const rows = arrears.data ?? [];
-  const totalBelum = rows.filter((r) => !r.paid).reduce((s, r) => s + Number(r.amount), 0);
-  const totalLunas = rows.filter((r) => r.paid).reduce((s, r) => s + Number(r.amount), 0);
+  const totalBelum = rows.reduce((s, r) => s + Number(r.amount), 0);
+
 
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; code: string; items: ArrearRow[]; belum: number }>();
@@ -170,9 +176,9 @@ function ArrearsPage() {
           <div className="text-[11px] text-rose-700">Total Tunggakan</div>
           <div className="text-base font-bold text-rose-800">{rupiah(totalBelum)}</div>
         </Card>
-        <Card className="p-3 bg-emerald-50 border-emerald-200">
-          <div className="text-[11px] text-emerald-700">Sudah Lunas</div>
-          <div className="text-base font-bold text-emerald-800">{rupiah(totalLunas)}</div>
+        <Card className="p-3 bg-slate-50 border-slate-200">
+          <div className="text-[11px] text-slate-600">Entri Aktif</div>
+          <div className="text-base font-bold text-slate-800">{rows.length} bulan</div>
         </Card>
       </div>
 
@@ -287,17 +293,22 @@ function ArrearsPage() {
                       {r.notes ? ` · ${r.notes}` : ""}
                     </div>
                   </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      r.paid ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                    }`}
-                  >
-                    {r.paid ? "Lunas" : "Belum"}
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700">
+                    Belum
                   </span>
                   <Checkbox
-                    checked={r.paid}
-                    disabled={togglePaid.isPending}
-                    onCheckedChange={(v) => togglePaid.mutate({ id: r.id, paid: Boolean(v) })}
+                    checked={false}
+                    disabled={settleArrear.isPending}
+                    onCheckedChange={(v) => {
+                      if (!v) return;
+                      if (
+                        confirm(
+                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Entri akan dihapus dari daftar tunggakan.`,
+                        )
+                      ) {
+                        settleArrear.mutate(r.id);
+                      }
+                    }}
                     aria-label="Tandai lunas"
                   />
                   {isAdmin && (
