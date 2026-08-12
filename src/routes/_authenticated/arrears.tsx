@@ -293,17 +293,22 @@ function ArrearsPage() {
                       {r.notes ? ` · ${r.notes}` : ""}
                     </div>
                   </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      r.paid ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                    }`}
-                  >
-                    {r.paid ? "Lunas" : "Belum"}
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700">
+                    Belum
                   </span>
                   <Checkbox
-                    checked={r.paid}
-                    disabled={togglePaid.isPending}
-                    onCheckedChange={(v) => togglePaid.mutate({ id: r.id, paid: Boolean(v) })}
+                    checked={false}
+                    disabled={settleArrear.isPending}
+                    onCheckedChange={(v) => {
+                      if (!v) return;
+                      if (
+                        confirm(
+                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Entri akan dihapus dari daftar tunggakan.`,
+                        )
+                      ) {
+                        settleArrear.mutate(r.id);
+                      }
+                    }}
                     aria-label="Tandai lunas"
                   />
                   {isAdmin && (
