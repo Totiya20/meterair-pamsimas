@@ -163,6 +163,19 @@ function ReportPage() {
   const totalDibayar = perCustomer.reduce((s, r) => s + r.dibayar, 0);
   const totalBelum = perCustomer.reduce((s, r) => s + r.belum, 0);
 
+  const arrearsByCustomer = useQuery({
+    queryKey: ["arrears-by-customer"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("arrears").select("customer_id, amount").eq("paid", false);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const r of data ?? []) map[r.customer_id] = (map[r.customer_id] ?? 0) + Number(r.amount);
+      return map;
+    },
+  });
+  const arrearMap = arrearsByCustomer.data ?? {};
+  const arrearOf = (cid: string) => arrearMap[cid] ?? 0;
+
   const arrearsTotal = useQuery({
     queryKey: ["arrears-total"],
     queryFn: async () => {
@@ -171,6 +184,7 @@ function ReportPage() {
       return (data ?? []).reduce((s, r) => s + Number(r.amount), 0);
     },
   });
+
 
 
 
