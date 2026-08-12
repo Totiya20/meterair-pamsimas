@@ -395,7 +395,7 @@ function ReportPage() {
       </Link>
 
       <p className="text-[11px] text-slate-500 mb-3">
-        Rumus tagihan: pemakaian &lt; 50 m³ dibatasi maksimal Rp 100.000; pemakaian ≥ 50 m³ mendapat diskon 50%.
+        Rumus: harga air (m³ × tarif) dibatasi maksimal Rp 100.000 untuk pemakaian &lt; 50 m³; pemakaian ≥ 50 m³ diskon 50%. Total = harga air + abonemen.
       </p>
 
 
