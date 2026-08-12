@@ -190,13 +190,14 @@ function ReportPage() {
 
   function exportExcel() {
     const periode = `${MONTHS[monthNum - 1]} ${year}`;
-    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Dibayar", "Belum Dibayar", "Status", "Ket"];
+    const header = ["No", "Kode", "Pelanggan", "Kubikasi (m³)", "Harga Air", "Abonemen", "Total", "Tunggakan", "Dibayar", "Belum Dibayar", "Status", "Ket"];
     const body = perCustomer.map((r, i) => [
-      i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, r.dibayar, r.belum,
+      i + 1, r.code, r.name, r.kubik, r.harga, r.abonemen, r.total, arrearOf(r.customer_id), r.dibayar, r.belum,
       r.belum === 0 ? "LUNAS" : "BELUM",
       r.rule === "diskon" ? "Diskon 50%" : r.rule === "batas" ? "Batas Rp100.000" : "",
     ]);
-    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalDibayar, totalBelum, "", ""];
+    const totalTunggakanTabel = perCustomer.reduce((s, r) => s + arrearOf(r.customer_id), 0);
+    const footer = ["", "", "TOTAL", totalKubik, totalHargaAir, totalAbonemen, totalHarga, totalTunggakanTabel, totalDibayar, totalBelum, "", ""];
 
     const aoa: (string | number)[][] = [
       ["LAPORAN REKAPITULASI PAMSIMAS"],
@@ -214,12 +215,12 @@ function ReportPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [
       { wch: 5 }, { wch: 14 }, { wch: 32 }, { wch: 13 },
-      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
     ];
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 10 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 11 } },
     ];
     ws["!freeze"] = { xSplit: 0, ySplit: 5 };
 
@@ -229,13 +230,14 @@ function ReportPage() {
         const cell = ws[XLSX.utils.encode_cell({ r, c })];
         if (cell && typeof cell.v === "number") cell.z = "#,##0.00";
       }
-      for (const c of [4, 5, 6, 7, 8]) {
+      for (const c of [4, 5, 6, 7, 8, 9]) {
         const cell = ws[XLSX.utils.encode_cell({ r, c })];
         if (cell && typeof cell.v === "number") cell.z = '"Rp"#,##0';
       }
     }
     const arrearsCell = ws[XLSX.utils.encode_cell({ r: lastRow + 2, c: 1 })];
     if (arrearsCell && typeof arrearsCell.v === "number") arrearsCell.z = '"Rp"#,##0';
+
 
 
     const wb = XLSX.utils.book_new();
