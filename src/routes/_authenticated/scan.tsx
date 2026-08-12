@@ -327,8 +327,8 @@ function ScanPage() {
                   {bill && bill.rule !== "normal" && (
                     <div className="mt-1 text-[11px] text-sky-100">
                       {bill.rule === "diskon"
-                        ? `Diskon 50% dari Rp ${bill.base.toLocaleString("id-ID")} (pemakaian ≥ 50 m³)`
-                        : `Dibatasi maksimal Rp 100.000 (dari Rp ${bill.base.toLocaleString("id-ID")})`}
+                        ? `Harga air diskon 50% dari Rp ${bill.hargaAirNormal.toLocaleString("id-ID")} (pemakaian ≥ 50 m³) + abonemen`
+                        : `Harga air dibatasi maksimal Rp 100.000 (dari Rp ${bill.hargaAirNormal.toLocaleString("id-ID")}) + abonemen`}
                     </div>
                   )}
                   <div className="mt-3 pt-3 border-t border-white/15 space-y-1 text-sm text-sky-50">
