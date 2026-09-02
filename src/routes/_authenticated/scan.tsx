@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useRef, useState, useEffect } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { readWaterMeter } from "@/lib/read-meter.functions";
+import { useState, useEffect } from "react";
+import { ocrMeter, preprocessForOcr } from "@/lib/ocr-meter";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { Camera, Loader2, RotateCcw, Receipt, Save, QrCode, X, User, Phone, MapP
 import { toast } from "sonner";
 import { ABONEMEN, computeBill } from "@/lib/billing";
 import { QrScanner } from "@/components/QrScanner";
+import { MeterCamera } from "@/components/MeterCamera";
 import { z } from "zod";
 
 const searchSchema = z.object({ customer: z.string().optional() });
@@ -37,13 +37,12 @@ type AiResult = { reading: number | null; confidence?: string; notes?: string };
 function ScanPage() {
   const search = useSearch({ from: "/_authenticated/scan" });
   const navigate = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const readMeter = useServerFn(readWaterMeter);
 
   const [scanning, setScanning] = useState(!search.customer);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadingCust, setLoadingCust] = useState(false);
 
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [result, setResult] = useState<AiResult | null>(null);
@@ -80,30 +79,24 @@ function ScanPage() {
     setPreview(null);
     setResult(null);
     setOverrideReading("");
+    setCameraOpen(false);
   }
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      setPreview(dataUrl);
-      setResult(null);
-      setAiLoading(true);
-      try {
-        const r = (await readMeter({ data: { imageDataUrl: dataUrl } })) as AiResult;
-        setResult(r);
-        if (r.reading != null) setOverrideReading(String(r.reading));
-        else toast.error("Angka tidak terbaca. Coba foto lebih jelas atau isi manual.");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Gagal membaca meter.");
-      } finally {
-        setAiLoading(false);
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+  async function onCapture(crop: HTMLCanvasElement, previewUrl: string) {
+    setAiLoading(true);
+    try {
+      const processed = preprocessForOcr(crop);
+      const r = await ocrMeter(processed);
+      setPreview(previewUrl);
+      setCameraOpen(false);
+      setResult(r);
+      if (r.reading != null) setOverrideReading(String(r.reading));
+      else toast.error("Angka tidak terbaca. Coba lagi lebih dekat atau isi manual.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal membaca meter.");
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   const finalReading = overrideReading !== "" ? Number(overrideReading) : null;
@@ -232,9 +225,17 @@ function ScanPage() {
           </Card>
 
           <Card className="overflow-hidden">
-            {!preview ? (
+            {cameraOpen ? (
+              <div className="p-3">
+                <MeterCamera onCapture={onCapture} onCancel={() => setCameraOpen(false)} busy={aiLoading} />
+              </div>
+            ) : !preview ? (
               <button
-                onClick={() => fileRef.current?.click()}
+                onClick={() => {
+                  setResult(null);
+                  setOverrideReading("");
+                  setCameraOpen(true);
+                }}
                 className="flex w-full flex-col items-center justify-center gap-3 px-6 py-12 text-center hover:bg-sky-50/50 transition"
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg shadow-sky-500/30">
@@ -242,18 +243,12 @@ function ScanPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900">Foto meteran</p>
-                  <p className="mt-1 text-xs text-slate-500">Pastikan angka jelas & terang.</p>
+                  <p className="mt-1 text-xs text-slate-500">Angka dibaca langsung di HP, tanpa internet AI.</p>
                 </div>
               </button>
             ) : (
               <div className="relative">
-                <img src={preview} alt="Foto meter" className="w-full aspect-[4/3] object-cover" />
-                {aiLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/60 text-white backdrop-blur-sm">
-                    <Loader2 className="h-7 w-7 animate-spin" />
-                    <p className="text-sm font-medium">AI sedang membaca…</p>
-                  </div>
-                )}
+                <img src={preview} alt="Foto meter" className="w-full aspect-[3/4] object-cover" />
                 <button
                   onClick={reset}
                   className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow"
@@ -262,14 +257,6 @@ function ScanPage() {
                 </button>
               </div>
             )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={onFile}
-            />
           </Card>
 
           <Button
@@ -278,6 +265,7 @@ function ScanPage() {
             className="w-full"
             onClick={() => {
               setPreview(null);
+              setCameraOpen(false);
               setAiLoading(false);
               setOverrideReading("");
               setResult({ reading: null, notes: "Input manual oleh petugas" });
