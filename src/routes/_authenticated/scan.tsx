@@ -293,7 +293,7 @@ function ScanPage() {
                 </div>
                 {result.confidence ? (
                   <p className="mt-1.5 text-[11px] text-slate-500">
-                    Keyakinan AI: <span className="font-medium uppercase">{result.confidence}</span>
+                    Keyakinan OCR: <span className="font-medium uppercase">{result.confidence}</span>
                     {result.notes && ` — ${result.notes}`}
                   </p>
                 ) : (

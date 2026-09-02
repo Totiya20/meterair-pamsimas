@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Wallet } from "lucide-react";
+import { Loader2, Plus, Share2, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { MONTHS, rupiah } from "@/lib/billing";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -147,6 +147,40 @@ function ArrearsPage() {
   const rows = arrears.data ?? [];
   const totalBelum = rows.reduce((s, r) => s + Number(r.amount), 0);
 
+  async function shareReport(g: { name: string; code: string; items: ArrearRow[]; belum: number }) {
+    const sorted = [...g.items].sort((a, b) => a.year - b.year || a.month - b.month);
+    const lines = sorted.map((r) => `- ${MONTHS[r.month - 1]} ${r.year}: ${rupiah(Number(r.amount))}`);
+    const text = [
+      "*LAPORAN TUNGGAKAN METERAN AIR*",
+      "",
+      `Nama Pelanggan: ${g.name}`,
+      `ID Pelanggan: ${g.code}`,
+      `Bulan Tunggakan (${sorted.length} bulan):`,
+      ...lines,
+      "",
+      `Total Tunggakan: ${rupiah(g.belum)}`,
+      "",
+      "Mohon segera melakukan pembayaran. Terima kasih.",
+      "_Pamsimas Mangun Tirta_",
+    ].join("\n");
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "Laporan Tunggakan Meteran Air", text });
+        return;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Laporan disalin ke papan klip. Tempel di WhatsApp/SMS.");
+    } catch {
+      toast.error("Gagal menyalin laporan.");
+    }
+  }
+
+
 
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; code: string; items: ArrearRow[]; belum: number }>();
@@ -277,8 +311,21 @@ function ArrearsPage() {
                 <div className="text-sm font-semibold text-slate-900">{g.name}</div>
                 <div className="text-[10px] text-slate-500">{g.code} · {g.items.length} bulan</div>
               </div>
-              <div className={`text-sm font-bold ${g.belum > 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                {g.belum > 0 ? rupiah(g.belum) : "Lunas"}
+              <div className="flex items-center gap-2">
+                <div className={`text-sm font-bold ${g.belum > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                  {g.belum > 0 ? rupiah(g.belum) : "Lunas"}
+                </div>
+                {g.belum > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2.5 border-sky-200 text-sky-700 hover:bg-sky-50"
+                    onClick={() => shareReport(g)}
+                    aria-label="Kirim laporan tunggakan"
+                  >
+                    <Share2 className="h-3.5 w-3.5 mr-1" /> Kirim
+                  </Button>
+                )}
               </div>
             </div>
             <div className="divide-y divide-slate-100">
