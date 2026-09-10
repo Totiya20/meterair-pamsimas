@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ocrMeter, preprocessForOcr } from "@/lib/ocr-meter";
+import { ocrMeter } from "@/lib/ocr-meter";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -85,8 +85,7 @@ function ScanPage() {
   async function onCapture(crop: HTMLCanvasElement, previewUrl: string) {
     setAiLoading(true);
     try {
-      const processed = preprocessForOcr(crop);
-      const r = await ocrMeter(processed);
+      const r = await ocrMeter(crop);
       setPreview(previewUrl);
       setCameraOpen(false);
       setResult(r);
