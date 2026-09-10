@@ -85,8 +85,7 @@ function ScanPage() {
   async function onCapture(crop: HTMLCanvasElement, previewUrl: string) {
     setAiLoading(true);
     try {
-      const processed = preprocessForOcr(crop);
-      const r = await ocrMeter(processed);
+      const r = await ocrMeter(crop);
       setPreview(previewUrl);
       setCameraOpen(false);
       setResult(r);
