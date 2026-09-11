@@ -74,35 +74,54 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
     h: number,
     maxWidth?: number,
   ): HTMLCanvasElement | null {
-    const bw = Math.round(w * BOX_W);
-    const bh = Math.round(h * BOX_H);
+    let visibleX = 0;
+    let visibleY = 0;
+    let visibleW = w;
+    let visibleH = h;
+
+    // Video memakai object-cover. Petakan kotak panduan layar ke bagian frame asli
+    // yang benar-benar terlihat agar crop OCR tidak meleset pada kamera 16:9.
+    if (src instanceof HTMLVideoElement) {
+      const displayW = src.clientWidth;
+      const displayH = src.clientHeight;
+      if (displayW > 0 && displayH > 0) {
+        const frameRatio = w / h;
+        const displayRatio = displayW / displayH;
+        if (frameRatio > displayRatio) {
+          visibleW = h * displayRatio;
+          visibleX = (w - visibleW) / 2;
+        } else if (frameRatio < displayRatio) {
+          visibleH = w / displayRatio;
+          visibleY = (h - visibleH) / 2;
+        }
+      }
+    }
+
+    const bw = Math.round(visibleW * BOX_W);
+    const bh = Math.round(visibleH * BOX_H);
     if (bw < 1 || bh < 1) return null;
-    const bx = Math.round((w - bw) / 2);
-    const by = Math.round((h - bh) / 2);
+    const bx = Math.round(visibleX + (visibleW - bw) / 2);
+    const by = Math.round(visibleY + (visibleH - bh) / 2);
     const scale = maxWidth ? Math.min(1, maxWidth / bw) : 1;
     const crop = document.createElement("canvas");
     crop.width = Math.max(1, Math.round(bw * scale));
     crop.height = Math.max(1, Math.round(bh * scale));
-    crop.getContext("2d", { willReadFrequently: true })!.drawImage(src, bx, by, bw, bh, 0, 0, crop.width, crop.height);
+    const ctx = crop.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(src, bx, by, bw, bh, 0, 0, crop.width, crop.height);
     return crop;
   }
 
   function cropFromSource(src: HTMLVideoElement | HTMLImageElement, w: number, h: number) {
-    const crop = boxCanvas(src, w, h)!;
-    const bw = Math.round(w * BOX_W);
-    const bh = Math.round(h * BOX_H);
-    const bx = Math.round((w - bw) / 2);
-    const by = Math.round((h - bh) / 2);
+    const crop = boxCanvas(src, w, h);
+    if (!crop) return null;
 
     const full = document.createElement("canvas");
     full.width = w;
     full.height = h;
-    const fctx = full.getContext("2d")!;
+    const fctx = full.getContext("2d");
+    if (!fctx) return null;
     fctx.drawImage(src, 0, 0, w, h);
-    // gambar kotak panduan pada preview
-    fctx.strokeStyle = "#38bdf8";
-    fctx.lineWidth = Math.max(3, w / 300);
-    fctx.strokeRect(bx, by, bw, bh);
     return { crop, preview: full.toDataURL("image/jpeg", 0.85) };
   }
 
@@ -121,7 +140,9 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
   function capture() {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
-    const { crop, preview } = cropFromSource(v, v.videoWidth, v.videoHeight);
+    const captured = cropFromSource(v, v.videoWidth, v.videoHeight);
+    if (!captured) return;
+    const { crop, preview } = captured;
     if (!passesPreCheck(crop)) return;
     onCapture(crop, preview);
   }
@@ -133,8 +154,10 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const { crop, preview } = cropFromSource(img, img.naturalWidth, img.naturalHeight);
+      const captured = cropFromSource(img, img.naturalWidth, img.naturalHeight);
       URL.revokeObjectURL(url);
+      if (!captured) return;
+      const { crop, preview } = captured;
       if (!passesPreCheck(crop)) return;
       onCapture(crop, preview);
     };
