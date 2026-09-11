@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ocrMeter } from "@/lib/ocr-meter";
+import { ocrMeter, type OcrAttempt } from "@/lib/ocr-meter";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,7 +32,13 @@ type Customer = {
   tariff: number;
 };
 
-type AiResult = { reading: number | null; confidence?: string; notes?: string };
+type AiResult = {
+  reading: number | null;
+  confidence?: string;
+  notes?: string;
+  rawText?: string;
+  attempts?: OcrAttempt[];
+};
 
 function ScanPage() {
   const search = useSearch({ from: "/_authenticated/scan" });
@@ -90,7 +96,7 @@ function ScanPage() {
       setCameraOpen(false);
       setResult(r);
       if (r.reading != null) setOverrideReading(String(r.reading));
-      else toast.error("Angka tidak terbaca. Coba lagi lebih dekat atau isi manual.");
+      else toast.error("Angka tidak terbaca. Periksa hasil debug atau isi manual.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal membaca meter.");
     } finally {
@@ -299,6 +305,24 @@ function ScanPage() {
                   <p className="mt-1.5 text-[11px] text-slate-500">
                     Ketik angka meteran secara manual, lalu simpan.
                   </p>
+                )}
+
+                {result.confidence === "low" && (
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600">
+                    <p className="font-semibold text-slate-700">Debug OCR</p>
+                    <p className="mt-1 break-words">
+                      Teks mentah: {result.rawText ? `“${result.rawText}”` : "kosong"}
+                    </p>
+                    {result.attempts && result.attempts.length > 0 && (
+                      <ul className="mt-1 space-y-0.5">
+                        {result.attempts.map((attempt) => (
+                          <li key={`${attempt.variant}-${attempt.psm}`}>
+                            Coba {attempt.variant} (PSM {attempt.psm}): {Math.round(attempt.score)}% — {attempt.rawText || "kosong"}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 )}
 
               </div>

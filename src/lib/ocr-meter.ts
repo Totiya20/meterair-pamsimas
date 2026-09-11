@@ -9,6 +9,15 @@ export type OcrResult = {
   score: number;
   notes: string;
   rawText: string;
+  attempts?: OcrAttempt[];
+};
+
+export type OcrAttempt = {
+  variant: number;
+  psm: "7" | "8";
+  rawText: string;
+  digits: string;
+  score: number;
 };
 
 export type PreprocessOptions = {
@@ -191,8 +200,14 @@ let workerPromise: Promise<import("tesseract.js").Worker> | null = null;
 async function getWorker() {
   if (!workerPromise) {
     workerPromise = (async () => {
-      const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker("eng");
+      const { createWorker, OEM } = await import("tesseract.js");
+      const worker = await createWorker("eng", OEM.LSTM_ONLY, {
+        workerPath: "/ocr/worker.min.js",
+        corePath: "/ocr/tesseract-core-lstm.wasm.js",
+        langPath: "/ocr",
+        gzip: true,
+        workerBlobURL: false,
+      });
       await worker.setParameters({
         tessedit_char_whitelist: "0123456789",
         // PSM 7 = anggap gambar sebagai satu baris teks
@@ -201,7 +216,13 @@ async function getWorker() {
       return worker;
     })();
   }
-  return workerPromise;
+  try {
+    return await workerPromise;
+  } catch (error) {
+    // Jangan simpan promise gagal: petugas harus bisa mencoba lagi tanpa memuat ulang halaman.
+    workerPromise = null;
+    throw error;
+  }
 }
 
 const VARIANTS: PreprocessOptions[] = [
@@ -226,29 +247,39 @@ async function runOnce(
 }
 
 const HIGH = 80;
-const MIN_ACCEPT = 70;
+const MIN_ACCEPT = 55;
 
 /**
  * Jalankan OCR pada area crop. Mencoba beberapa parameter preprocessing dan
  * mengambil hasil dengan confidence tertinggi (tidak digabung).
  */
 export async function ocrMeter(crop: HTMLCanvasElement): Promise<OcrResult> {
-  const attempts: { value: number | null; digits: string; score: number; rawText: string }[] = [];
+  const attempts: Array<OcrAttempt & { value: number | null }> = [];
+  const errors: string[] = [];
 
   for (let i = 0; i < VARIANTS.length; i++) {
     const psm: "7" | "8" = i === 2 ? "8" : "7";
     try {
       const r = await runOnce(crop, VARIANTS[i], psm);
-      attempts.push(r);
+      const attempt = { ...r, variant: i + 1, psm };
+      attempts.push(attempt);
+      console.info("[OCR meter] percobaan", attempt);
       // berhenti lebih awal bila sudah yakin
       if (r.value != null && r.score >= HIGH && r.digits.length >= 4) break;
-    } catch {
-      /* lanjut ke varian berikutnya */
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push(message);
+      console.error(`[OCR meter] percobaan ${i + 1} gagal`, error);
     }
+  }
+
+  if (attempts.length === 0 && errors.length > 0) {
+    throw new Error(`Mesin OCR gagal dimuat. Periksa koneksi lalu coba lagi. (${errors[0]})`);
   }
 
   const valid = attempts.filter((a) => a.value != null);
   const best = (valid.length ? valid : attempts).sort((a, b) => b.score - a.score)[0];
+  const publicAttempts: OcrAttempt[] = attempts.map(({ value: _value, ...attempt }) => attempt);
 
   if (!best || best.value == null) {
     return {
@@ -257,6 +288,7 @@ export async function ocrMeter(crop: HTMLCanvasElement): Promise<OcrResult> {
       score: best?.score ?? 0,
       notes: "Angka tidak terdeteksi. Dekatkan kamera & pastikan angka di dalam kotak panduan.",
       rawText: best?.rawText ?? "",
+      attempts: publicAttempts,
     };
   }
 
@@ -267,6 +299,7 @@ export async function ocrMeter(crop: HTMLCanvasElement): Promise<OcrResult> {
       score: best.score,
       notes: `Keyakinan OCR terlalu rendah (${Math.round(best.score)}%). Silakan isi manual.`,
       rawText: best.rawText,
+      attempts: publicAttempts,
     };
   }
 
@@ -277,5 +310,6 @@ export async function ocrMeter(crop: HTMLCanvasElement): Promise<OcrResult> {
     score: best.score,
     notes: `Terbaca "${best.digits}" dengan keyakinan ${Math.round(best.score)}%.`,
     rawText: best.rawText,
+    attempts: publicAttempts,
   };
 }
