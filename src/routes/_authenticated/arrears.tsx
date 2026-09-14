@@ -249,12 +249,146 @@ function ArrearsPage() {
     return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
   }, [rows]);
 
+  const fileSlug = selectedCustomer ? selectedCustomer.customer_code.toLowerCase() : "semua";
+
+  function exportPdf() {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("LAPORAN TUNGGAKAN PAMSIMAS", 105, 14, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(scopeLabel, 105, 20, { align: "center" });
+    doc.text(
+      `Total Tunggakan: ${rupiah(totalBelum)}  |  Dibayar: ${rupiah(totalDibayar)}  |  Entri aktif: ${rows.length}`,
+      105,
+      26,
+      { align: "center" },
+    );
+
+    autoTable(doc, {
+      startY: 32,
+      head: [["No", "Bulan & Tahun", "Total Tunggakan", "Dibayar", "Belum Dibayar", "Status"]],
+      body: monthly.map((m, i) => [
+        i + 1,
+        `${MONTHS[m.month - 1]} ${m.year}`,
+        rupiah(m.total),
+        m.dibayar > 0 ? rupiah(m.dibayar) : "-",
+        m.belum > 0 ? rupiah(m.belum) : "-",
+        m.belum === 0 ? "LUNAS" : "BELUM LUNAS",
+      ]),
+      foot: [[
+        "",
+        "TOTAL",
+        rupiah(monthly.reduce((s, m) => s + m.total, 0)),
+        rupiah(totalDibayar),
+        rupiah(totalBelum),
+        "",
+      ]],
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: "bold" },
+      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 12 },
+        2: { halign: "right" },
+        3: { halign: "right" },
+        4: { halign: "right" },
+      },
+    });
+
+    doc.save(`tunggakan-pamsimas-${fileSlug}.pdf`);
+  }
+
+  function exportExcel() {
+    const aoa: (string | number)[][] = [
+      ["LAPORAN TUNGGAKAN PAMSIMAS"],
+      [scopeLabel],
+      [`Total Tunggakan: ${rupiah(totalBelum)}`],
+      [`Dibayar: ${rupiah(totalDibayar)}`],
+      [],
+      ["No", "Bulan", "Tahun", "Total Tunggakan", "Dibayar", "Belum Dibayar", "Status"],
+      ...monthly.map((m, i) => [
+        i + 1,
+        MONTHS[m.month - 1],
+        m.year,
+        m.total,
+        m.dibayar,
+        m.belum,
+        m.belum === 0 ? "LUNAS" : "BELUM LUNAS",
+      ]),
+      [
+        "",
+        "TOTAL",
+        "",
+        monthly.reduce((s, m) => s + m.total, 0),
+        totalDibayar,
+        totalBelum,
+        "",
+      ],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 5 }, { wch: 14 }, { wch: 8 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+    ];
+    const lastRow = 6 + monthly.length;
+    for (let r = 6; r <= lastRow; r++) {
+      for (const c of [3, 4, 5]) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (cell && typeof cell.v === "number") cell.z = '"Rp"#,##0';
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Tunggakan");
+    XLSX.writeFile(wb, `tunggakan-pamsimas-${fileSlug}.xlsx`);
+  }
+
   return (
     <div className="px-5 pt-4 pb-6">
       <div className="mb-3">
         <h1 className="text-xl font-bold tracking-tight text-slate-900">Laporan Tunggakan</h1>
         <p className="text-xs text-slate-500">Catat tunggakan pelanggan per bulan & tandai saat lunas.</p>
       </div>
+
+      <Card className="p-3 mb-3">
+        <label className="text-xs font-medium text-slate-600">Cari / pilih pelanggan</label>
+        <div className="relative mt-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Ketik nama atau kode pelanggan…"
+            className="h-9 pl-8"
+          />
+        </div>
+        <Select value={filterCustomerId} onValueChange={setFilterCustomerId}>
+          <SelectTrigger className="mt-2 h-9">
+            <SelectValue placeholder="Semua pelanggan" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua pelanggan</SelectItem>
+            {filteredCustomers.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.customer_code} — {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            onClick={exportPdf}
+            disabled={monthly.length === 0}
+            className="flex-1 bg-sky-600 hover:bg-sky-700"
+          >
+            <FileText className="h-4 w-4 mr-1" /> Export PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportExcel} disabled={monthly.length === 0} className="flex-1">
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
+          </Button>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 gap-2 mb-3">
         <Card className="p-3 bg-rose-50 border-rose-200">
@@ -265,7 +399,83 @@ function ArrearsPage() {
           <div className="text-[11px] text-slate-600">Entri Aktif</div>
           <div className="text-base font-bold text-slate-800">{rows.length} bulan</div>
         </Card>
+        <Card className="p-3 bg-emerald-50 border-emerald-200">
+          <div className="text-[11px] text-emerald-700">Dibayar</div>
+          <div className="text-base font-bold text-emerald-800">{rupiah(totalDibayar)}</div>
+        </Card>
+        <Card className="p-3 bg-rose-50 border-rose-200">
+          <div className="text-[11px] text-rose-700">Belum Dibayar</div>
+          <div className="text-base font-bold text-rose-800">{rupiah(totalBelum)}</div>
+        </Card>
       </div>
+
+      <Card className="p-0 mb-4 overflow-hidden">
+        <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-700">
+          Rincian per bulan — {scopeLabel}
+        </div>
+        {monthly.length === 0 ? (
+          <div className="p-4 text-center text-xs text-slate-500">Belum ada data tunggakan.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-slate-500 border-b border-slate-200">
+                  <th className="px-3 py-2 font-medium">Bulan & Tahun</th>
+                  <th className="px-2 py-2 font-medium text-right">Total</th>
+                  <th className="px-2 py-2 font-medium text-right">Dibayar</th>
+                  <th className="px-2 py-2 font-medium text-right">Belum</th>
+                  <th className="px-2 py-2 font-medium">Status</th>
+                  <th className="px-2 py-2 font-medium text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {monthly.map((m) => (
+                  <tr key={m.key}>
+                    <td className="px-3 py-2 font-medium text-slate-900">
+                      {MONTHS[m.month - 1]} {m.year}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-slate-700">{rupiah(m.total)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-emerald-700">{rupiah(m.dibayar)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-rose-700">{rupiah(m.belum)}</td>
+                    <td className="px-2 py-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          m.belum === 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}
+                      >
+                        {m.belum === 0 ? "Lunas" : "Belum Lunas"}
+                      </span>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      {m.belum > 0 ? (
+                        <Checkbox
+                          checked={false}
+                          disabled={settleArrear.isPending}
+                          onCheckedChange={(v) => {
+                            if (!v) return;
+                            const unpaid = m.items.filter((r) => !r.paid);
+                            if (
+                              confirm(
+                                `Tandai tunggakan ${MONTHS[m.month - 1]} ${m.year} sebesar ${rupiah(m.belum)} sebagai LUNAS? Entri akan dihapus dari daftar tunggakan.`,
+                              )
+                            ) {
+                              unpaid.forEach((r) => settleArrear.mutate(r.id));
+                            }
+                          }}
+                          aria-label="Tandai lunas"
+                        />
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
 
       <Card className="p-3 mb-4">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2">
