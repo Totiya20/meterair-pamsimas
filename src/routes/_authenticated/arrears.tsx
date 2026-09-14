@@ -13,8 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Share2, Trash2, Wallet } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2, Plus, Search, Share2, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { MONTHS, rupiah } from "@/lib/billing";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -53,6 +56,8 @@ function ArrearsPage() {
   const [year, setYear] = useState<number>(now.getFullYear());
   const [amount, setAmount] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [filterCustomerId, setFilterCustomerId] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
 
   const years = useMemo(() => {
     const y = now.getFullYear();
@@ -77,7 +82,6 @@ function ArrearsPage() {
       const { data, error } = await supabase
         .from("arrears")
         .select("id, customer_id, month, year, amount, paid, notes, customers(name, customer_code)")
-        .eq("paid", false)
         .order("year", { ascending: false })
         .order("month", { ascending: false });
       if (error) throw error;
