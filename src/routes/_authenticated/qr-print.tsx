@@ -31,6 +31,17 @@ function QrPrintPage() {
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [savingAll, setSavingAll] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string>("all");
+
+  const all = customers.data ?? [];
+  const options = all.filter((c) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return c.name.toLowerCase().includes(q) || c.customer_code.toLowerCase().includes(q);
+  });
+  const list = selectedId === "all" ? all : all.filter((c) => c.id === selectedId);
+  const single = selectedId !== "all" ? list[0] : undefined;
 
   useEffect(() => {
     if (!customers.data) return;
