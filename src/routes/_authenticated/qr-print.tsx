@@ -201,30 +201,57 @@ function QrPrintPage() {
               Simpan / Cetak QR
             </h1>
             <p className="text-xs text-slate-500">
-              {customers.data?.length ?? 0} pelanggan — simpan ke galeri HP atau cetak A4.
+              {all.length} pelanggan — simpan ke galeri HP atau cetak A4.
             </p>
           </div>
+
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari nama atau kode pelanggan…"
+                className="h-9 pl-8"
+              />
+            </div>
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Semua pelanggan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua pelanggan</SelectItem>
+                {options.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.customer_code} — {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex gap-2">
             <Button
               onClick={saveAll}
-              disabled={!customers.data?.length || savingAll}
+              disabled={!list.length || savingAll || savingId !== null}
               className="flex-1"
             >
-              {savingAll ? (
+              {savingAll || savingId ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <Download className="h-4 w-4 mr-1" />
               )}
-              Simpan semua
+              {single ? "Simpan QR" : "Simpan semua"}
             </Button>
             <Button
               onClick={() => window.print()}
-              disabled={!customers.data?.length}
+              disabled={!list.length}
               variant="outline"
             >
-              <Printer className="h-4 w-4 mr-1" /> Cetak
+              <Printer className="h-4 w-4 mr-1" /> {single ? "Cetak QR" : "Cetak"}
             </Button>
           </div>
+
           <p className="text-[11px] text-slate-400 leading-relaxed">
             Di Android/iOS, file akan masuk ke folder <b>Download</b>. Buka aplikasi
             Galeri/Foto lalu pindahkan/ simpan ke album bila perlu.
