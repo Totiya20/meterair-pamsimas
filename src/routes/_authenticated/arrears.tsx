@@ -148,8 +148,55 @@ function ArrearsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal menghapus."),
   });
 
-  const rows = arrears.data ?? [];
+  const allRows = arrears.data ?? [];
+  const scoped = useMemo(
+    () => (filterCustomerId === "all" ? allRows : allRows.filter((r) => r.customer_id === filterCustomerId)),
+    [allRows, filterCustomerId],
+  );
+  /** Daftar aktif = entri yang belum lunas (perilaku lama dipertahankan). */
+  const rows = useMemo(() => scoped.filter((r) => !r.paid), [scoped]);
   const totalBelum = rows.reduce((s, r) => s + Number(r.amount), 0);
+  const totalDibayar = scoped.filter((r) => r.paid).reduce((s, r) => s + Number(r.amount), 0);
+
+  const filteredCustomers = useMemo(() => {
+    const list = customers.data ?? [];
+    const q = search.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.customer_code.toLowerCase().includes(q),
+    );
+  }, [customers.data, search]);
+
+  const selectedCustomer = (customers.data ?? []).find((c) => c.id === filterCustomerId);
+  const scopeLabel = selectedCustomer
+    ? `${selectedCustomer.customer_code} — ${selectedCustomer.name}`
+    : "Semua pelanggan";
+
+  /** Rekap per bulan & tahun (menghormati filter pelanggan aktif). */
+  type MonthRow = {
+    key: string;
+    month: number;
+    year: number;
+    total: number;
+    dibayar: number;
+    belum: number;
+    items: ArrearRow[];
+  };
+  const monthly = useMemo<MonthRow[]>(() => {
+    const map = new Map<string, MonthRow>();
+    for (const r of scoped) {
+      const key = `${r.year}-${r.month}`;
+      const m =
+        map.get(key) ?? { key, month: r.month, year: r.year, total: 0, dibayar: 0, belum: 0, items: [] };
+      const amt = Number(r.amount);
+      m.total += amt;
+      if (r.paid) m.dibayar += amt;
+      else m.belum += amt;
+      m.items.push(r);
+      map.set(key, m);
+    }
+    return Array.from(map.values()).sort((a, b) => b.year - a.year || b.month - a.month);
+  }, [scoped]);
 
   async function shareReport(g: { name: string; code: string; items: ArrearRow[]; belum: number }) {
     const sorted = [...g.items].sort((a, b) => a.year - b.year || a.month - b.month);
