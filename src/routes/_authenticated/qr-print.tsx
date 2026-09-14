@@ -5,7 +5,15 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, QrCode as QrIcon, Download, Image as ImageIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Printer, Loader2, QrCode as QrIcon, Download, Image as ImageIcon, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/qr-print")({
