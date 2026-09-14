@@ -5,7 +5,15 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, QrCode as QrIcon, Download, Image as ImageIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Printer, Loader2, QrCode as QrIcon, Download, Image as ImageIcon, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/qr-print")({
@@ -31,6 +39,17 @@ function QrPrintPage() {
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [savingAll, setSavingAll] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string>("all");
+
+  const all = customers.data ?? [];
+  const options = all.filter((c) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return c.name.toLowerCase().includes(q) || c.customer_code.toLowerCase().includes(q);
+  });
+  const list = selectedId === "all" ? all : all.filter((c) => c.id === selectedId);
+  const single = selectedId !== "all" ? list[0] : undefined;
 
   useEffect(() => {
     if (!customers.data) return;
@@ -118,7 +137,11 @@ function QrPrintPage() {
   };
 
   const saveAll = async () => {
-    if (!customers.data?.length) return;
+    if (!list.length) return;
+    if (single) {
+      await saveOne(single);
+      return;
+    }
     try {
       setSavingAll(true);
       // Composite grid 3 kolom
@@ -127,7 +150,7 @@ function QrPrintPage() {
       const cardH = 720;
       const gap = 24;
       const pad = 32;
-      const rows = Math.ceil(customers.data.length / cols);
+      const rows = Math.ceil(list.length / cols);
       const W = pad * 2 + cols * cardW + (cols - 1) * gap;
       const H = pad * 2 + rows * cardH + (rows - 1) * gap;
 
@@ -138,8 +161,8 @@ function QrPrintPage() {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, W, H);
 
-      for (let i = 0; i < customers.data.length; i++) {
-        const c = customers.data[i];
+      for (let i = 0; i < list.length; i++) {
+        const c = list[i];
         const row = Math.floor(i / cols);
         const col = i % cols;
         const x = pad + col * (cardW + gap);
@@ -158,7 +181,7 @@ function QrPrintPage() {
       const url = URL.createObjectURL(blob);
       triggerDownload(url, `QR-Pamsimas-${new Date().toISOString().slice(0, 10)}.png`);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(`${customers.data.length} QR disimpan ke galeri / Download`);
+      toast.success(`${list.length} QR disimpan ke galeri / Download`);
     } catch (e) {
       toast.error("Gagal menyimpan semua QR");
     } finally {
@@ -186,30 +209,57 @@ function QrPrintPage() {
               Simpan / Cetak QR
             </h1>
             <p className="text-xs text-slate-500">
-              {customers.data?.length ?? 0} pelanggan — simpan ke galeri HP atau cetak A4.
+              {all.length} pelanggan — simpan ke galeri HP atau cetak A4.
             </p>
           </div>
+
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari nama atau kode pelanggan…"
+                className="h-9 pl-8"
+              />
+            </div>
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Semua pelanggan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua pelanggan</SelectItem>
+                {options.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.customer_code} — {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex gap-2">
             <Button
               onClick={saveAll}
-              disabled={!customers.data?.length || savingAll}
+              disabled={!list.length || savingAll || savingId !== null}
               className="flex-1"
             >
-              {savingAll ? (
+              {savingAll || savingId ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <Download className="h-4 w-4 mr-1" />
               )}
-              Simpan semua
+              {single ? "Simpan QR" : "Simpan semua"}
             </Button>
             <Button
               onClick={() => window.print()}
-              disabled={!customers.data?.length}
+              disabled={!list.length}
               variant="outline"
             >
-              <Printer className="h-4 w-4 mr-1" /> Cetak
+              <Printer className="h-4 w-4 mr-1" /> {single ? "Cetak QR" : "Cetak"}
             </Button>
           </div>
+
           <p className="text-[11px] text-slate-400 leading-relaxed">
             Di Android/iOS, file akan masuk ke folder <b>Download</b>. Buka aplikasi
             Galeri/Foto lalu pindahkan/ simpan ke album bila perlu.
@@ -230,7 +280,7 @@ function QrPrintPage() {
         )}
 
         <div className="print-grid grid grid-cols-2 gap-3">
-          {customers.data?.map((c) => (
+          {list.map((c) => (
             <div
               key={c.id}
               className="print-card bg-white rounded-xl border border-slate-200 shadow-sm p-3 text-center"
