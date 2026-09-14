@@ -129,7 +129,11 @@ function QrPrintPage() {
   };
 
   const saveAll = async () => {
-    if (!customers.data?.length) return;
+    if (!list.length) return;
+    if (single) {
+      await saveOne(single);
+      return;
+    }
     try {
       setSavingAll(true);
       // Composite grid 3 kolom
@@ -138,7 +142,7 @@ function QrPrintPage() {
       const cardH = 720;
       const gap = 24;
       const pad = 32;
-      const rows = Math.ceil(customers.data.length / cols);
+      const rows = Math.ceil(list.length / cols);
       const W = pad * 2 + cols * cardW + (cols - 1) * gap;
       const H = pad * 2 + rows * cardH + (rows - 1) * gap;
 
@@ -149,8 +153,8 @@ function QrPrintPage() {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, W, H);
 
-      for (let i = 0; i < customers.data.length; i++) {
-        const c = customers.data[i];
+      for (let i = 0; i < list.length; i++) {
+        const c = list[i];
         const row = Math.floor(i / cols);
         const col = i % cols;
         const x = pad + col * (cardW + gap);
@@ -169,7 +173,7 @@ function QrPrintPage() {
       const url = URL.createObjectURL(blob);
       triggerDownload(url, `QR-Pamsimas-${new Date().toISOString().slice(0, 10)}.png`);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(`${customers.data.length} QR disimpan ke galeri / Download`);
+      toast.success(`${list.length} QR disimpan ke galeri / Download`);
     } catch (e) {
       toast.error("Gagal menyimpan semua QR");
     } finally {
