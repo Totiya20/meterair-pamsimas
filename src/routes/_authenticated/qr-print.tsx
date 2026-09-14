@@ -272,7 +272,7 @@ function QrPrintPage() {
         )}
 
         <div className="print-grid grid grid-cols-2 gap-3">
-          {customers.data?.map((c) => (
+          {list.map((c) => (
             <div
               key={c.id}
               className="print-card bg-white rounded-xl border border-slate-200 shadow-sm p-3 text-center"
