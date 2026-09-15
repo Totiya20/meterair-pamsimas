@@ -611,7 +611,7 @@ function ArrearsPage() {
                       if (!v) return;
                       if (
                         confirm(
-                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Entri akan dihapus dari daftar tunggakan.`,
+                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Data tetap tersimpan.`,
                         )
                       ) {
                         settleArrear.mutate(r.id);
