@@ -119,14 +119,14 @@ function ArrearsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal menyimpan."),
   });
 
-  /** Centang "Lunas" = entri langsung dihapus dari daftar tunggakan. */
+  /** Centang "Lunas" = status diubah menjadi lunas, data TETAP tersimpan di tabel. */
   const settleArrear = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("arrears").delete().eq("id", id);
+      const { error } = await supabase.from("arrears").update({ paid: true }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Tunggakan lunas & dihapus dari daftar.");
+      toast.success("Tunggakan ditandai LUNAS.");
       qc.invalidateQueries({ queryKey: ["arrears"] });
       qc.invalidateQueries({ queryKey: ["arrears-total"] });
       qc.invalidateQueries({ queryKey: ["arrears-by-customer"] });
@@ -397,7 +397,7 @@ function ArrearsPage() {
         </Card>
         <Card className="p-3 bg-slate-50 border-slate-200">
           <div className="text-[11px] text-slate-600">Entri Aktif</div>
-          <div className="text-base font-bold text-slate-800">{rows.length} bulan</div>
+          <div className="text-base font-bold text-slate-800">{rows.length} Tunggakan Aktif</div>
         </Card>
         <Card className="p-3 bg-emerald-50 border-emerald-200">
           <div className="text-[11px] text-emerald-700">Dibayar</div>
@@ -456,7 +456,7 @@ function ArrearsPage() {
                             const unpaid = m.items.filter((r) => !r.paid);
                             if (
                               confirm(
-                                `Tandai tunggakan ${MONTHS[m.month - 1]} ${m.year} sebesar ${rupiah(m.belum)} sebagai LUNAS? Entri akan dihapus dari daftar tunggakan.`,
+                                `Tandai tunggakan ${MONTHS[m.month - 1]} ${m.year} sebesar ${rupiah(m.belum)} sebagai LUNAS? Data tetap tersimpan di tabel.`,
                               )
                             ) {
                               unpaid.forEach((r) => settleArrear.mutate(r.id));
@@ -611,7 +611,7 @@ function ArrearsPage() {
                       if (!v) return;
                       if (
                         confirm(
-                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Entri akan dihapus dari daftar tunggakan.`,
+                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Data tetap tersimpan.`,
                         )
                       ) {
                         settleArrear.mutate(r.id);
