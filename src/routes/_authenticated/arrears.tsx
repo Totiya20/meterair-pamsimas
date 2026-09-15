@@ -603,20 +603,13 @@ function ArrearsPage() {
                     Belum
                   </span>
                   <Checkbox
-                    checked={false}
+                    checked={r.paid}
                     disabled={settleArrear.isPending}
-                    onCheckedChange={(v) => {
-                      if (!v) return;
-                      if (
-                        confirm(
-                          `Tandai tunggakan ${MONTHS[r.month - 1]} ${r.year} sebesar ${rupiah(Number(r.amount))} sebagai LUNAS? Data tetap tersimpan.`,
-                        )
-                      ) {
-                        settleArrear.mutate(r.id);
-                      }
-                    }}
-                    aria-label="Tandai lunas"
+                    onCheckedChange={(v) => settleArrear.mutate({ ids: [r.id], paid: v === true })}
+                    className="rounded-full border-slate-300 bg-white data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900 data-[state=checked]:text-white"
+                    aria-label={r.paid ? "Batalkan lunas" : "Tandai lunas"}
                   />
+
                   {isAdmin && (
                     <button
                       onClick={() => {
