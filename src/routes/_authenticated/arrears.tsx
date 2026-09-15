@@ -119,20 +119,22 @@ function ArrearsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal menyimpan."),
   });
 
-  /** Centang "Lunas" = status diubah menjadi lunas, data TETAP tersimpan di tabel. */
+  /** Toggle status lunas dua arah — data TETAP tersimpan di tabel. */
   const settleArrear = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("arrears").update({ paid: true }).eq("id", id);
+    mutationFn: async ({ ids, paid }: { ids: string[]; paid: boolean }) => {
+      if (ids.length === 0) return;
+      const { error } = await supabase.from("arrears").update({ paid }).in("id", ids);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Tunggakan ditandai LUNAS.");
+    onSuccess: (_d, v) => {
+      toast.success(v.paid ? "Ditandai LUNAS." : "Dikembalikan ke BELUM LUNAS.");
       qc.invalidateQueries({ queryKey: ["arrears"] });
       qc.invalidateQueries({ queryKey: ["arrears-total"] });
       qc.invalidateQueries({ queryKey: ["arrears-by-customer"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Gagal memperbarui."),
   });
+
 
   const removeArrear = useMutation({
     mutationFn: async (id: string) => {
