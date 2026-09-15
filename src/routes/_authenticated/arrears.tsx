@@ -424,54 +424,50 @@ function ArrearsPage() {
                 <tr className="text-left text-slate-500 border-b border-slate-200">
                   <th className="px-3 py-2 font-medium">Bulan & Tahun</th>
                   <th className="px-2 py-2 font-medium text-right">Total</th>
-                  <th className="px-2 py-2 font-medium text-right">Dibayar</th>
-                  <th className="px-2 py-2 font-medium text-right">Belum</th>
                   <th className="px-2 py-2 font-medium">Status</th>
-                  <th className="px-2 py-2 font-medium text-center">Aksi</th>
+                  <th className="px-2 py-2 font-medium text-center">Lunas</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {monthly.map((m) => (
+                {monthly.map((m) => {
+                  const isPaid = m.belum === 0;
+                  return (
                   <tr key={m.key}>
                     <td className="px-3 py-2 font-medium text-slate-900">
                       {MONTHS[m.month - 1]} {m.year}
                     </td>
-                    <td className="px-2 py-2 text-right tabular-nums text-slate-700">{rupiah(m.total)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums text-emerald-700">{rupiah(m.dibayar)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums text-rose-700">{rupiah(m.belum)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">
+                      <div className="font-bold text-slate-900">{rupiah(m.total)}</div>
+                      {isPaid ? (
+                        <div className="text-[10px] font-medium text-emerald-600">Lunas</div>
+                      ) : (
+                        <div className="text-[10px] font-medium text-rose-500">Sisa {rupiah(m.belum)}</div>
+                      )}
+                    </td>
                     <td className="px-2 py-2">
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          m.belum === 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                          isPaid ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                         }`}
                       >
-                        {m.belum === 0 ? "Lunas" : "Belum Lunas"}
+                        {isPaid ? "Lunas" : "Belum Lunas"}
                       </span>
                     </td>
                     <td className="px-2 py-2 text-center">
-                      {m.belum > 0 ? (
-                        <Checkbox
-                          checked={false}
-                          disabled={settleArrear.isPending}
-                          onCheckedChange={(v) => {
-                            if (!v) return;
-                            const unpaid = m.items.filter((r) => !r.paid);
-                            if (
-                              confirm(
-                                `Tandai tunggakan ${MONTHS[m.month - 1]} ${m.year} sebesar ${rupiah(m.belum)} sebagai LUNAS? Data tetap tersimpan di tabel.`,
-                              )
-                            ) {
-                              unpaid.forEach((r) => settleArrear.mutate(r.id));
-                            }
-                          }}
-                          aria-label="Tandai lunas"
-                        />
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
+                      <Checkbox
+                        checked={isPaid}
+                        disabled={settleArrear.isPending}
+                        onCheckedChange={(v) =>
+                          settleArrear.mutate({ ids: m.items.map((r) => r.id), paid: v === true })
+                        }
+                        className="rounded-full border-slate-300 bg-white data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900 data-[state=checked]:text-white"
+                        aria-label={isPaid ? "Batalkan lunas" : "Tandai lunas"}
+                      />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
+
               </tbody>
             </table>
           </div>
