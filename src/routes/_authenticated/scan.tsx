@@ -268,20 +268,30 @@ function ScanPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900">Foto meteran</p>
-                  <p className="mt-1 text-xs text-slate-500">Angka dibaca langsung di HP, tanpa internet AI.</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Angka dibaca otomatis menggunakan teknologi Cloud AI &amp; kalkulator tagihan.
+                  </p>
                 </div>
               </button>
             ) : (
               <div className="relative">
                 <img src={preview} alt="Foto meter" className="w-full aspect-[3/4] object-cover" />
-                <button
-                  onClick={reset}
-                  className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Ulang
-                </button>
+                {aiLoading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/70 text-white backdrop-blur-sm">
+                    <Loader2 className="h-7 w-7 animate-spin" />
+                    <p className="text-sm font-medium">AI sedang membaca angka…</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={reset}
+                    className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Ulang
+                  </button>
+                )}
               </div>
             )}
+
           </Card>
 
           <Button
