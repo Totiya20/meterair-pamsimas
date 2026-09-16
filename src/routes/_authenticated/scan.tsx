@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { ocrMeter, type OcrAttempt } from "@/lib/ocr-meter";
+import { readMeterAi } from "@/lib/read-meter.functions";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -90,19 +92,37 @@ function ScanPage() {
 
   async function onCapture(crop: HTMLCanvasElement, previewUrl: string) {
     setAiLoading(true);
+    setPreview(previewUrl);
+    setCameraOpen(false);
     try {
-      const r = await ocrMeter(crop);
-      setPreview(previewUrl);
-      setCameraOpen(false);
-      setResult(r);
-      if (r.reading != null) setOverrideReading(String(r.reading));
-      else toast.error("Angka tidak terbaca. Periksa hasil debug atau isi manual.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal membaca meter.");
+      // 1) Coba baca lewat AI di server (akurasi terbaik, tetap jalan di Netlify).
+      const ai = await readMeterAi({ data: { imageDataUrl: previewUrl } });
+      if (ai.reading != null) {
+        setResult({ reading: ai.reading, confidence: ai.confidence, notes: ai.notes || "Dibaca otomatis oleh AI" });
+        setOverrideReading(String(ai.reading));
+        return;
+      }
+      throw new Error(ai.notes || "AI tidak menemukan angka.");
+    } catch (aiErr) {
+      // 2) Cadangan: OCR langsung di HP.
+      try {
+        const r = await ocrMeter(crop);
+        setResult(r);
+        if (r.reading != null) {
+          setOverrideReading(String(r.reading));
+          toast.info("Dibaca oleh pembaca cadangan di HP.");
+        } else {
+          toast.error(aiErr instanceof Error ? aiErr.message : "Angka tidak terbaca. Isi manual.");
+        }
+      } catch (err) {
+        setResult({ reading: null, notes: "Input manual oleh petugas" });
+        toast.error(err instanceof Error ? err.message : "Gagal membaca meter.");
+      }
     } finally {
       setAiLoading(false);
     }
   }
+
 
   const finalReading = overrideReading !== "" ? Number(overrideReading) : null;
   const prev = customer?.last_reading ?? 0;
