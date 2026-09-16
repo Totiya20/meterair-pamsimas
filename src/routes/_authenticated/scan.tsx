@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { ocrMeter, type OcrAttempt } from "@/lib/ocr-meter";
-import { readMeterAi } from "@/lib/read-meter.functions";
+import { callReadMeterAi } from "@/lib/read-meter-ai";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,7 @@ function ScanPage() {
     setCameraOpen(false);
     try {
       // 1) Coba baca lewat AI di server (akurasi terbaik, tetap jalan di Netlify).
-      const ai = await readMeterAi({ data: { imageDataUrl: previewUrl } });
+      const ai = await callReadMeterAi(previewUrl);
       if (ai.reading != null) {
         setResult({ reading: ai.reading, confidence: ai.confidence, notes: ai.notes || "Dibaca otomatis oleh AI" });
         setOverrideReading(String(ai.reading));
