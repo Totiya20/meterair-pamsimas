@@ -96,7 +96,7 @@ function ScanPage() {
     setCameraOpen(false);
     try {
       // 1) Coba baca lewat AI di server (akurasi terbaik, tetap jalan di Netlify).
-      const ai = await readMeterAi({ data: { imageDataUrl: previewUrl } });
+      const ai = await callReadMeterAi(previewUrl);
       if (ai.reading != null) {
         setResult({ reading: ai.reading, confidence: ai.confidence, notes: ai.notes || "Dibaca otomatis oleh AI" });
         setOverrideReading(String(ai.reading));
