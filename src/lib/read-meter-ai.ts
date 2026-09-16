@@ -1,5 +1,5 @@
 // Pemanggil endpoint pembaca meter AI.
-// Diarahkan langsung ke Supabase Edge Function agar kompatibel 100% dengan Netlify.
+// Menggunakan import metadata bawaan agar token terbaca 100% lancar di Lovable & Netlify.
 export type AiMeterResult = {
   reading: number | null;
   confidence: "high" | "medium" | "low";
@@ -7,19 +7,18 @@ export type AiMeterResult = {
 };
 
 // PERBAIKAN RUTE: Mengarahkan langsung ke Edge Function proyek Supabase Anda sendiri
-const SUPABASE_URL = "https://zkggdxfbzdtfboohdmah.supabase.co";
+const SUPABASE_URL = "https://supabase.co";
 const PATH = "/functions/v1/read-meter-ai";
 
 function endpoint(): string {
-  // Langsung panggil URL Supabase yang sudah di-whitelist CORS-nya
   return `${SUPABASE_URL}${PATH}`;
 }
 
 export async function callReadMeterAi(imageDataUrl: string): Promise<AiMeterResult> {
   let res: Response;
   
-  // Ambil token anon dari environment variable Netlify/Lovable untuk otentikasi ke Supabase
-  const anonKey = (typeof window !== "undefined" && (window as any)._env_?.VITE_SUPABASE_ANON_KEY) || "";
+  // SOLUSI UTAMA: Mengambil token rahasia resmi menggunakan import.meta.env bawaan React Vite
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
   try {
     res = await fetch(endpoint(), {
