@@ -7,7 +7,7 @@ export type AiMeterResult = {
 };
 
 // PERBAIKAN RUTE: Mengarahkan langsung ke Edge Function proyek Supabase Anda sendiri
-const SUPABASE_URL = "https://supabase.co";
+const SUPABASE_URL = "https://zkggdxfbzdtfboohdmah.supabase.co";
 const PATH = "/functions/v1/read-meter-ai";
 
 function endpoint(): string {
