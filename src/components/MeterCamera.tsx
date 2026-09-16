@@ -211,7 +211,7 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
         {busy && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/70 text-white backdrop-blur-sm">
             <Loader2 className="h-7 w-7 animate-spin" />
-            <p className="text-sm font-medium">Membaca angka…</p>
+            <p className="text-sm font-medium">AI sedang membaca angka…</p>
           </div>
         )}
       </div>
