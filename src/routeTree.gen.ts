@@ -18,6 +18,7 @@ import { Route as AuthenticatedQrPrintRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedArrearsRouteImport } from './routes/_authenticated/arrears'
 import { Route as AuthenticatedCustomersIndexRouteImport } from './routes/_authenticated/customers.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as ApiPublicReadMeterAiRouteImport } from './routes/api/public/read-meter-ai'
 import { Route as AuthenticatedCustomersNewRouteImport } from './routes/_authenticated/customers.new'
 import { Route as AuthenticatedCustomersIdRouteImport } from './routes/_authenticated/customers.$id'
 import { Route as AuthenticatedAdminLoginLogsRouteImport } from './routes/_authenticated/admin.login-logs'
@@ -68,6 +69,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicReadMeterAiRoute = ApiPublicReadMeterAiRouteImport.update({
+  id: '/api/public/read-meter-ai',
+  path: '/api/public/read-meter-ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCustomersNewRoute =
   AuthenticatedCustomersNewRouteImport.update({
     id: '/customers/new',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/admin/login-logs': typeof AuthenticatedAdminLoginLogsRoute
   '/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/customers/new': typeof AuthenticatedCustomersNewRoute
+  '/api/public/read-meter-ai': typeof ApiPublicReadMeterAiRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/customers/': typeof AuthenticatedCustomersIndexRoute
 }
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/admin/login-logs': typeof AuthenticatedAdminLoginLogsRoute
   '/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/customers/new': typeof AuthenticatedCustomersNewRoute
+  '/api/public/read-meter-ai': typeof ApiPublicReadMeterAiRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/customers': typeof AuthenticatedCustomersIndexRoute
 }
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/login-logs': typeof AuthenticatedAdminLoginLogsRoute
   '/_authenticated/customers/$id': typeof AuthenticatedCustomersIdRoute
   '/_authenticated/customers/new': typeof AuthenticatedCustomersNewRoute
+  '/api/public/read-meter-ai': typeof ApiPublicReadMeterAiRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/customers/': typeof AuthenticatedCustomersIndexRoute
 }
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/admin/login-logs'
     | '/customers/$id'
     | '/customers/new'
+    | '/api/public/read-meter-ai'
     | '/admin/'
     | '/customers/'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/admin/login-logs'
     | '/customers/$id'
     | '/customers/new'
+    | '/api/public/read-meter-ai'
     | '/admin'
     | '/customers'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/login-logs'
     | '/_authenticated/customers/$id'
     | '/_authenticated/customers/new'
+    | '/api/public/read-meter-ai'
     | '/_authenticated/admin/'
     | '/_authenticated/customers/'
   fileRoutesById: FileRoutesById
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicReadMeterAiRoute: typeof ApiPublicReadMeterAiRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/read-meter-ai': {
+      id: '/api/public/read-meter-ai'
+      path: '/api/public/read-meter-ai'
+      fullPath: '/api/public/read-meter-ai'
+      preLoaderRoute: typeof ApiPublicReadMeterAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/customers/new': {
       id: '/_authenticated/customers/new'
       path: '/customers/new'
@@ -318,6 +338,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicReadMeterAiRoute: ApiPublicReadMeterAiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

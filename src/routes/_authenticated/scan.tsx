@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { ocrMeter, type OcrAttempt } from "@/lib/ocr-meter";
-import { readMeterAi } from "@/lib/read-meter.functions";
+import { callReadMeterAi } from "@/lib/read-meter-ai";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
