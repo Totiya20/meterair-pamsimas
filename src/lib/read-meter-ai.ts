@@ -1,30 +1,33 @@
 // Pemanggil endpoint pembaca meter AI.
-// Di hosting Lovable (preview/produksi) dipanggil relatif; di Netlify (statis,
-// tanpa server) diarahkan ke aplikasi Lovable yang sudah dipublikasikan.
+// Diarahkan langsung ke Supabase Edge Function agar kompatibel 100% dengan Netlify.
 export type AiMeterResult = {
   reading: number | null;
   confidence: "high" | "medium" | "low";
   notes: string;
 };
 
-const PUBLISHED_ORIGIN = "https://meterair-pamsimas.lovable.app";
-const PATH = "/api/public/read-meter-ai";
+// PERBAIKAN RUTE: Mengarahkan langsung ke Edge Function proyek Supabase Anda sendiri
+const SUPABASE_URL = "https://supabase.co";
+const PATH = "/functions/v1/read-meter-ai";
 
 function endpoint(): string {
-  if (typeof window === "undefined") return PATH;
-  const host = window.location.hostname;
-  if (host.endsWith("lovable.app") || host === "localhost" || host === "127.0.0.1") {
-    return PATH;
-  }
-  return `${PUBLISHED_ORIGIN}${PATH}`;
+  // Langsung panggil URL Supabase yang sudah di-whitelist CORS-nya
+  return `${SUPABASE_URL}${PATH}`;
 }
 
 export async function callReadMeterAi(imageDataUrl: string): Promise<AiMeterResult> {
   let res: Response;
+  
+  // Ambil token anon dari environment variable Netlify/Lovable untuk otentikasi ke Supabase
+  const anonKey = (typeof window !== "undefined" && (window as any)._env_?.VITE_SUPABASE_ANON_KEY) || "";
+
   try {
     res = await fetch(endpoint(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${anonKey}`
+      },
       body: JSON.stringify({ imageDataUrl }),
     });
   } catch {
