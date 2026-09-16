@@ -6,8 +6,8 @@ export type AiMeterResult = {
   notes: string;
 };
 
-// PERBAIKAN RUTE: Mengarahkan langsung ke Edge Function proyek Supabase Anda sendiri
-const SUPABASE_URL = "https://supabase.co";
+// PERBAIKAN RUTE RESMI: Diarahkan langsung ke pangkalan data ID unik proyek Anda
+const SUPABASE_URL = "https://zkggdxfbzdtfboohdmah.supabase.co";
 const PATH = "/functions/v1/read-meter-ai";
 
 function endpoint(): string {
@@ -17,7 +17,7 @@ function endpoint(): string {
 export async function callReadMeterAi(imageDataUrl: string): Promise<AiMeterResult> {
   let res: Response;
   
-  // SOLUSI UTAMA: Mengambil token rahasia resmi menggunakan import.meta.env bawaan React Vite
+  // Mengambil token rahasia resmi menggunakan import.meta.env bawaan React Vite
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
   try {
