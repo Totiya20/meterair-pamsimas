@@ -205,16 +205,21 @@ function ArrearsPage() {
     const lines = sorted.map((r) => `- ${MONTHS[r.month - 1]} ${r.year}: ${rupiah(Number(r.amount))}`);
     const text = [
       "*LAPORAN TUNGGAKAN METERAN AIR*",
-      "",
-      `Nama Pelanggan: ${g.name}`,
-      `ID Pelanggan: ${g.code}`,
-      `Bulan Tunggakan (${sorted.length} bulan):`,
-      ...lines,
-      "",
-      `Total Tunggakan: ${rupiah(g.belum)}`,
-      "",
-      "Mohon segera melakukan pembayaran. Terima kasih.",
-      "_Pamsimas Mangun Tirta_",
+  "",
+  `Nama Pelanggan: ${g.name}`,
+  `ID Pelanggan: ${g.code}`,
+  `Bulan Tunggakan (${sorted.length} bulan):`,
+  ...lines,
+  "",
+  `Total Tunggakan: ${rupiah(g.belum)}`,
+  "",
+  "Pembayaran dapat dilakukan melalui:",
+  "- Rek BRI 722801000048560 an Pamsimas manguntirta",
+  "- QRIS Pamsimas",
+  "- Langsung ke bendahara Pamsimas",
+  "",
+  "Mohon segera melakukan pembayaran. Terima kasih.",
+  "_Pamsimas Mangun Tirta_",
     ].join("\n");
 
     if (typeof navigator !== "undefined" && navigator.share) {
