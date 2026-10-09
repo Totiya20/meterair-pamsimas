@@ -6,27 +6,27 @@ export type AiMeterResult = {
   notes: string;
 };
 
-// PERBAIKAN RUTE RESMI: Diarahkan langsung ke pangkalan data ID unik proyek Anda
-const SUPABASE_URL = "https://zkggdxfbzdtfboohdmah.supabase.co";
-const PATH = "/functions/v1/read-meter-ai";
+// Endpoint AI berjalan di server aplikasi Lovable. Versi Netlify (statis, tanpa server)
+// memanggil endpoint publik yang sama secara lintas-origin (CORS diizinkan).
+const LOVABLE_APP_URL = "https://meterair-pamsimas.lovable.app";
+const PATH = "/api/public/read-meter-ai";
 
 function endpoint(): string {
-  return `${SUPABASE_URL}${PATH}`;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host.endsWith(".lovable.app") || host === "localhost" || host === "127.0.0.1") {
+      return PATH; // aplikasi Lovable / dev: pakai server sendiri
+    }
+  }
+  return `${LOVABLE_APP_URL}${PATH}`; // Netlify & hosting lain
 }
 
 export async function callReadMeterAi(imageDataUrl: string): Promise<AiMeterResult> {
   let res: Response;
-  
-  // Mengambil token rahasia resmi menggunakan import.meta.env bawaan React Vite
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
   try {
     res = await fetch(endpoint(), {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${anonKey}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageDataUrl }),
     });
   } catch {
