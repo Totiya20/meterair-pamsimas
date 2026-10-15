@@ -80,7 +80,6 @@ export function QrScanner({ onResult, onError }: Props) {
   useEffect(() => {
     let cancelled = false;
     let running = false;
-    const scanner = scannerRef.current;
 
     const shutdown = () => {
       const s = scannerRef.current;
