@@ -190,8 +190,12 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
         {!error ? (
           <video ref={videoRef} playsInline muted autoPlay className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-xs text-slate-300">
-            {error}. Gunakan tombol "Ambil dari galeri" di bawah.
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-xs text-slate-300">
+            <p>{error}</p>
+            <Button size="sm" variant="secondary" onClick={() => void startCamera()}>
+              Coba lagi
+            </Button>
+            <p className="text-[11px] text-slate-400">Atau gunakan tombol "Galeri" di bawah.</p>
           </div>
         )}
 
