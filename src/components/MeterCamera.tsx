@@ -33,10 +33,8 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("unsupported");
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false,
-      });
+      const stream = await openRearCamera();
+
       streamRef.current = stream;
       const v = videoRef.current;
       if (v) {
