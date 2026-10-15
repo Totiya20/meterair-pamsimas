@@ -24,34 +24,51 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [quality, setQuality] = useState<QualityVerdict | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        const v = videoRef.current;
-        if (v) {
-          v.srcObject = stream;
-          await v.play().catch(() => {});
-          setReady(true);
-        }
-      } catch (e) {
+  const startCamera = async () => {
+    setError(null);
+    setReady(false);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("unsupported");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      const v = videoRef.current;
+      if (v) {
+        v.srcObject = stream;
+        await v.play().catch(() => {});
+        setReady(true);
+      }
+    } catch (e) {
+      const name = e instanceof DOMException ? e.name : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError(
+          "Izin kamera ditolak. Ketuk ikon gembok/kunci di kolom alamat browser, lalu pilih Izinkan kamera. Setelah itu tekan tombol Coba lagi.",
+        );
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setError("Kamera tidak ditemukan di perangkat ini.");
+      } else if (name === "NotReadableError") {
+        setError("Kamera sedang dipakai aplikasi lain. Tutup aplikasi kamera lain lalu coba lagi.");
+      } else if (e instanceof Error && e.message === "unsupported") {
+        setError("Browser ini tidak mendukung akses kamera. Buka lewat Chrome/Safari langsung, bukan dari dalam aplikasi lain.");
+      } else {
         setError(e instanceof Error ? e.message : "Kamera tidak bisa dibuka.");
       }
-    })();
+    }
+  };
+
+  useEffect(() => {
+    void startCamera();
     return () => {
-      cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** Cek kualitas area kotak panduan secara berkala (ringan: sampel kecil). */
@@ -173,8 +190,12 @@ export function MeterCamera({ onCapture, onCancel, busy }: Props) {
         {!error ? (
           <video ref={videoRef} playsInline muted autoPlay className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-xs text-slate-300">
-            {error}. Gunakan tombol "Ambil dari galeri" di bawah.
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-xs text-slate-300">
+            <p>{error}</p>
+            <Button size="sm" variant="secondary" onClick={() => void startCamera()}>
+              Coba lagi
+            </Button>
+            <p className="text-[11px] text-slate-400">Atau gunakan tombol "Galeri" di bawah.</p>
           </div>
         )}
 
