@@ -15,6 +15,69 @@ type Props = {
 const BOX_W = 0.8;
 const BOX_H = 0.22;
 
+const VIDEO_RES = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+
+const isRearLabel = (label: string) => /back|rear|belakang|environment/i.test(label);
+const isFrontLabel = (label: string) => /front|depan|user|selfie/i.test(label);
+
+/** Hanya error "kamera belakang tidak bisa diminta" yang boleh dicoba ulang. */
+function isConstraintProblem(e: unknown) {
+  const name = e instanceof DOMException ? e.name : "";
+  return name === "OverconstrainedError" || name === "NotFoundError" || name === "AbortError";
+}
+
+/**
+ * Buka kamera BELAKANG. `facingMode: "ideal"` di banyak HP diam-diam kembali ke
+ * kamera depan, jadi: paksa exact environment -> pilih deviceId kamera belakang
+ * (dipastikan ulang lewat getSettings) -> fallback terakhir.
+ */
+async function openRearCamera(): Promise<MediaStream> {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { ...VIDEO_RES, facingMode: { exact: "environment" } },
+      audio: false,
+    });
+  } catch (e) {
+    if (!isConstraintProblem(e)) throw e;
+  }
+
+  let cams: MediaDeviceInfo[] = [];
+  try {
+    cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput");
+  } catch {
+    cams = [];
+  }
+
+  const ordered = [
+    ...cams.filter((c) => isRearLabel(c.label)),
+    ...cams.filter((c) => !isRearLabel(c.label) && !isFrontLabel(c.label)),
+    ...cams.filter((c) => isFrontLabel(c.label)),
+  ];
+
+  for (const cam of ordered) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { ...VIDEO_RES, deviceId: { exact: cam.deviceId } },
+        audio: false,
+      });
+      const facing = stream.getVideoTracks()[0]?.getSettings().facingMode;
+      if (cams.length > 1 && facing === "user") {
+        stream.getTracks().forEach((t) => t.stop());
+        continue;
+      }
+      return stream;
+    } catch (e) {
+      if (!isConstraintProblem(e)) throw e;
+    }
+  }
+
+  return navigator.mediaDevices.getUserMedia({
+    video: { ...VIDEO_RES, facingMode: { ideal: "environment" } },
+    audio: false,
+  });
+}
+
+
 export function MeterCamera({ onCapture, onCancel, busy }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
