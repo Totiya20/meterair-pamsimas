@@ -13,15 +13,48 @@ export function QrScanner({ onResult, onError }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    let running = false;
     const el = document.getElementById(containerId);
     if (!el) return;
     const scanner = new Html5Qrcode(containerId, false);
     scannerRef.current = scanner;
     handledRef.current = false;
 
+    const shutdown = () => {
+      const s = scannerRef.current;
+      if (!s) return;
+      try {
+        if (running) {
+          s.stop()
+            .catch(() => {})
+            .finally(() => {
+              try {
+                s.clear();
+              } catch {
+                /* sudah dibersihkan */
+              }
+            });
+        } else {
+          try {
+            s.clear();
+          } catch {
+            /* kamera belum sempat dibuka */
+          }
+        }
+      } catch {
+        // stop() melempar sinkron kalau scanner belum siap — jangan sampai
+        // error ini merobohkan seluruh halaman.
+        try {
+          s.clear();
+        } catch {
+          /* abaikan */
+        }
+      }
+    };
+
     scanner
       .start(
-        { facingMode: "environment" },
+        { facingMode: { ideal: "environment" } },
         { fps: 10, qrbox: { width: 240, height: 240 } },
         (text) => {
           if (handledRef.current || cancelled) return;
@@ -30,6 +63,14 @@ export function QrScanner({ onResult, onError }: Props) {
         },
         () => {},
       )
+      .then(() => {
+        if (cancelled) {
+          running = true;
+          shutdown();
+          return;
+        }
+        running = true;
+      })
       .catch((e) => {
         if (cancelled) return;
         onError?.(e instanceof Error ? e.message : "Tidak bisa membuka kamera");
@@ -37,12 +78,7 @@ export function QrScanner({ onResult, onError }: Props) {
 
     return () => {
       cancelled = true;
-      const s = scannerRef.current;
-      if (s) {
-        s.stop().catch(() => {}).finally(() => {
-          try { s.clear(); } catch {}
-        });
-      }
+      shutdown();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
