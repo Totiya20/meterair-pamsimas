@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, test } from "node:test";
+import assert from "node:assert/strict";
 import { customerArrearsReportText } from "./arrears-report";
 import { rupiah } from "./billing";
 
@@ -14,11 +15,11 @@ describe("customer arrears notice", () => {
   };
   test("only unpaid entries contribute to the 311000 customer balance", () => {
     const text = customerArrearsReportText(report);
-    expect(text).toContain(`Total Tunggakan: ${rupiah(311000)}`);
-    expect(text).not.toContain(`Mei 2026: ${rupiah(85000)}`);
+    assert.ok(text.includes(`Total Tunggakan: ${rupiah(311000)}`));
+    assert.ok(!text.includes(`Mei 2026: ${rupiah(85000)}`));
   });
   test("print and WhatsApp use identical customer data", () => {
-    expect(customerArrearsReportText(report, true).replaceAll("*", "").replaceAll("_", ""))
-      .toBe(customerArrearsReportText(report));
+    assert.equal(customerArrearsReportText(report, true).replaceAll("*", "").replaceAll("_", ""),
+      customerArrearsReportText(report));
   });
 });
