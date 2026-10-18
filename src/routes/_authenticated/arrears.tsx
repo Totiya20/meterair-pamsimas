@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -13,13 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileSpreadsheet, FileText, Loader2, Plus, Search, Share2, Trash2, Wallet } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2, Plus, Printer, Search, Share2, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { MONTHS, rupiah } from "@/lib/billing";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { customerArrearsReportText, type CustomerArrearsReport } from "@/lib/arrears-report";
 
 export const Route = createFileRoute("/_authenticated/arrears")({
   head: () => ({
@@ -58,6 +61,7 @@ function ArrearsPage() {
   const [notes, setNotes] = useState<string>("");
   const [filterCustomerId, setFilterCustomerId] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [printCustomerId, setPrintCustomerId] = useState<string | null>(null);
 
   const years = useMemo(() => {
     const y = now.getFullYear();
@@ -201,26 +205,7 @@ function ArrearsPage() {
   }, [scoped]);
 
   async function shareReport(g: { name: string; code: string; items: ArrearRow[]; belum: number }) {
-    const sorted = [...g.items].sort((a, b) => a.year - b.year || a.month - b.month);
-    const lines = sorted.map((r) => `- ${MONTHS[r.month - 1]} ${r.year}: ${rupiah(Number(r.amount))}`);
-    const text = [
-      "*LAPORAN TUNGGAKAN METERAN AIR*",
-  "",
-  `Nama Pelanggan: ${g.name}`,
-  `ID Pelanggan: ${g.code}`,
-  `Bulan Tunggakan (${sorted.length} bulan):`,
-  ...lines,
-  "",
-  `Total Tunggakan: ${rupiah(g.belum)}`,
-  "",
-  "Pembayaran dapat dilakukan melalui:",
-  "- Rek BRI 722801000048560 an Pamsimas manguntirta",
-  "- QRIS Pamsimas",
-  "- Langsung ke bendahara Pamsimas",
-  "",
-  "Mohon segera melakukan pembayaran. Terima kasih.",
-  "_Pamsimas Mangun Tirta_",
-    ].join("\n");
+    const text = customerArrearsReportText(g, true);
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -255,6 +240,14 @@ function ArrearsPage() {
     }
     return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
   }, [rows]);
+
+  const printCustomer = (customers.data ?? []).find((c) => c.id === printCustomerId);
+  const printReport: CustomerArrearsReport | null = printCustomer ? {
+    name: printCustomer.name,
+    code: printCustomer.customer_code,
+    items: allRows.filter((r) => r.customer_id === printCustomerId),
+  } : null;
+  const printText = printReport ? customerArrearsReportText(printReport) : "";
 
   const fileSlug = selectedCustomer ? selectedCustomer.customer_code.toLowerCase() : "semua";
 
@@ -395,6 +388,11 @@ function ArrearsPage() {
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
           </Button>
         </div>
+        {selectedCustomer && (
+          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => setPrintCustomerId(selectedCustomer.id)} disabled={arrears.isLoading || scoped.length === 0}>
+            <Printer className="mr-1 h-4 w-4" /> Cetak laporan pelanggan
+          </Button>
+        )}
       </Card>
 
       <div className="grid grid-cols-2 gap-2 mb-3">
@@ -570,8 +568,8 @@ function ArrearsPage() {
         )}
         {grouped.map(([cid, g]) => (
           <Card key={cid} className="p-0 overflow-hidden">
-            <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div>
+            <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 basis-36">
                 <div className="text-sm font-semibold text-slate-900">{g.name}</div>
                 <div className="text-[10px] text-slate-500">{g.code} · {g.items.length} bulan</div>
               </div>
@@ -579,6 +577,9 @@ function ArrearsPage() {
                 <div className={`text-sm font-bold ${g.belum > 0 ? "text-rose-600" : "text-emerald-600"}`}>
                   {g.belum > 0 ? rupiah(g.belum) : "Lunas"}
                 </div>
+                <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => setPrintCustomerId(cid)} aria-label={`Cetak laporan ${g.name}`} title="Cetak laporan pelanggan">
+                  <Printer className="mr-1 h-3.5 w-3.5" /> Cetak
+                </Button>
                 {g.belum > 0 && (
                   <Button
                     size="sm"
@@ -632,6 +633,22 @@ function ArrearsPage() {
           </Card>
         ))}
       </div>
+      <Dialog open={printCustomerId !== null} onOpenChange={(open) => { if (!open) setPrintCustomerId(null); }}>
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg p-4">
+          <DialogTitle className="pr-8">Cetak laporan tunggakan</DialogTitle>
+          <DialogDescription>{printReport ? `${printReport.code} — ${printReport.name}` : "Memuat pelanggan…"}</DialogDescription>
+          <div className="whitespace-pre-wrap break-words border-y border-border py-4 text-sm leading-relaxed text-foreground">{printText}</div>
+          <Button disabled={!printReport || arrears.isFetching} onClick={() => window.print()}>
+            <Printer className="mr-2 h-4 w-4" /> Cetak / Simpan PDF
+          </Button>
+        </DialogContent>
+      </Dialog>
+      {printReport && typeof document !== "undefined" && createPortal(
+        <article id="customer-arrears-print" aria-hidden="true">
+          <div className="customer-arrears-print-text">{printText}</div>
+        </article>,
+        document.body,
+      )}
     </div>
   );
 }
