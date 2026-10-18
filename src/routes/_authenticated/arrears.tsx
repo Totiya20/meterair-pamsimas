@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileSpreadsheet, FileText, Loader2, Plus, Printer, Search, Share2, Trash2, Wallet } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Loader2, Plus, Printer, Search, Share2, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -23,6 +23,7 @@ import * as XLSX from "xlsx";
 import { MONTHS, rupiah } from "@/lib/billing";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { customerArrearsReportText, type CustomerArrearsReport } from "@/lib/arrears-report";
+import { createCustomerArrearsPdf, saveReportPdf } from "@/lib/report-pdf";
 
 export const Route = createFileRoute("/_authenticated/arrears")({
   head: () => ({
@@ -638,9 +639,21 @@ function ArrearsPage() {
           <DialogTitle className="pr-8">Cetak laporan tunggakan</DialogTitle>
           <DialogDescription>{printReport ? `${printReport.code} — ${printReport.name}` : "Memuat pelanggan…"}</DialogDescription>
           <div className="whitespace-pre-wrap break-words border-y border-border py-4 text-sm leading-relaxed text-foreground">{printText}</div>
-          <Button disabled={!printReport || arrears.isFetching} onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" /> Cetak / Simpan PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="flex-1" disabled={!printReport || arrears.isFetching} onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" /> Cetak
+            </Button>
+            <Button className="flex-1" disabled={!printReport || arrears.isFetching} onClick={() => {
+              if (!printReport) return;
+              try {
+                const blob = createCustomerArrearsPdf(printReport);
+                const code = printReport.code.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
+                void saveReportPdf(blob, `tunggakan-pamsimas-${code}.pdf`).catch(() => toast.error("Gagal menyimpan PDF. Silakan coba lagi."));
+              } catch { toast.error("Gagal membuat PDF. Silakan coba lagi."); }
+            }}>
+              <Download className="mr-2 h-4 w-4" /> Unduh PDF
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
       {printReport && typeof document !== "undefined" && createPortal(
