@@ -1,19 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, ChevronRight, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Plus, Search, ChevronRight, Users, Printer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/customers/")({
-  head: () => ({ meta: [{ title: "Pelanggan — MeterAir Pamsimas" }] }),
+  head: () => ({ meta: [
+    { title: "Pelanggan — MeterAir Pamsimas" },
+    { name: "description", content: "Daftar pelanggan Pamsimas, identitas, kontak, dan bacaan meter terakhir." },
+    { property: "og:title", content: "Pelanggan — MeterAir Pamsimas" },
+    { property: "og:description", content: "Daftar pelanggan Pamsimas, identitas, kontak, dan bacaan meter terakhir." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: CustomersPage,
 });
 
 function CustomersPage() {
   const [q, setQ] = useState("");
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printDate, setPrintDate] = useState("");
   const customers = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
@@ -36,6 +47,36 @@ function CustomersPage() {
       c.phone.includes(s)
     );
   });
+
+  const report = (
+    <>
+      <h2 className="text-center text-lg font-bold text-foreground">LAPORAN DAFTAR PELANGGAN</h2>
+      <p className="text-center text-sm text-muted-foreground">MeterAir Pamsimas — Pamsimas Mangun Tirta</p>
+      <div className="my-4 text-xs text-foreground">
+        <p>Tanggal cetak: {printDate}</p>
+        <p>Total: {filtered.length} pelanggan</p>
+        {q.trim() && <p className="break-words">Pencarian: {q.trim()}</p>}
+      </div>
+      <table className="customer-list-report-table w-full table-fixed border-collapse text-xs text-foreground">
+        <colgroup><col className="w-[6%]" /><col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[26%]" /><col className="w-[17%]" /><col className="w-[13%]" /></colgroup>
+        <thead className="bg-muted">
+          <tr>{["No", "Kode", "Nama Pelanggan", "Alamat", "No. HP", "Meter Terakhir (m³)"].map((label) => <th key={label} className="break-words border border-border p-2 text-left font-semibold">{label}</th>)}</tr>
+        </thead>
+        <tbody>
+          {filtered.map((c, i) => (
+            <tr key={c.id}>
+              <td className="border border-border p-2 align-top">{i + 1}</td>
+              <td className="break-words border border-border p-2 align-top">{c.customer_code}</td>
+              <td className="break-words border border-border p-2 align-top">{c.name}</td>
+              <td className="break-words border border-border p-2 align-top">{c.address || "—"}</td>
+              <td className="break-words border border-border p-2 align-top">{c.phone || "—"}</td>
+              <td className="border border-border p-2 text-right align-top tabular-nums">{Number(c.last_reading).toLocaleString("id-ID")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
 
   return (
     <div className="px-5 pt-2 space-y-4">
@@ -60,6 +101,13 @@ function CustomersPage() {
           className="pl-9"
         />
       </div>
+
+      <Button variant="outline" className="w-full" disabled={customers.isFetching || customers.isError || filtered.length === 0} onClick={() => {
+        setPrintDate(new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }));
+        setPrintOpen(true);
+      }}>
+        <Printer className="mr-2 h-4 w-4" /> {q.trim() ? "Cetak hasil pencarian" : "Cetak daftar pelanggan"}
+      </Button>
 
       {customers.isLoading && <p className="text-sm text-slate-500">Memuat…</p>}
 
@@ -99,6 +147,19 @@ function CustomersPage() {
           </Link>
         ))}
       </div>
+      <Dialog open={printOpen} onOpenChange={setPrintOpen}>
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-lg p-4">
+          <DialogTitle className="pr-8">Cetak daftar pelanggan</DialogTitle>
+          <DialogDescription>{filtered.length} pelanggan{q.trim() ? " sesuai pencarian" : " terdaftar"}</DialogDescription>
+          <div className="overflow-x-auto"><div className="min-w-[680px]">{report}</div></div>
+          <Button disabled={customers.isFetching || customers.isError || filtered.length === 0} onClick={() => window.print()}>
+            <Printer className="mr-2 h-4 w-4" /> Cetak / Simpan PDF
+          </Button>
+        </DialogContent>
+      </Dialog>
+      {printOpen && typeof document !== "undefined" && createPortal(
+        <article id="customer-list-print" aria-hidden="true">{report}</article>, document.body,
+      )}
     </div>
   );
 }
