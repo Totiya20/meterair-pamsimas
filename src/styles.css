@@ -147,6 +147,27 @@
   display: none;
 }
 
+#customer-list-print { display: none; }
+
+@media print {
+  body:has(#customer-list-print) > :not(#customer-list-print) { display: none !important; }
+  body:has(#customer-list-print) {
+    overflow: visible !important;
+    height: auto !important;
+    background: var(--background);
+    color: var(--foreground);
+  }
+  #customer-list-print {
+    display: block;
+    font-family: Arial, sans-serif;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .customer-list-report-table thead { display: table-header-group; }
+  .customer-list-report-table tr { break-inside: avoid; }
+  .customer-list-report-table th, .customer-list-report-table td { font-size: 9pt; }
+}
+
 @media print {
   @page { size: A4; margin: 18mm; }
 
