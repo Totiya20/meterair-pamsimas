@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Search, ChevronRight, Users, Printer } from "lucide-react";
+import { Plus, Search, ChevronRight, Users, Printer, Download } from "lucide-react";
+import { createCustomerDirectoryPdf, saveReportPdf } from "@/lib/report-pdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/customers/")({
   head: () => ({ meta: [
@@ -152,9 +154,19 @@ function CustomersPage() {
           <DialogTitle className="pr-8">Cetak daftar pelanggan</DialogTitle>
           <DialogDescription>{filtered.length} pelanggan{q.trim() ? " sesuai pencarian" : " terdaftar"}</DialogDescription>
           <div className="overflow-x-auto"><div className="min-w-[680px]">{report}</div></div>
-          <Button disabled={customers.isFetching || customers.isError || filtered.length === 0} onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" /> Cetak / Simpan PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="flex-1" disabled={customers.isFetching || customers.isError || filtered.length === 0} onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" /> Cetak
+            </Button>
+            <Button className="flex-1" disabled={customers.isFetching || customers.isError || filtered.length === 0} onClick={() => {
+              try {
+                const blob = createCustomerDirectoryPdf(filtered, printDate, q);
+                void saveReportPdf(blob, `daftar-pelanggan-pamsimas${q.trim() ? "-pencarian" : ""}.pdf`).catch(() => toast.error("Gagal menyimpan PDF. Silakan coba lagi."));
+              } catch { toast.error("Gagal membuat PDF. Silakan coba lagi."); }
+            }}>
+              <Download className="mr-2 h-4 w-4" /> Unduh PDF
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
       {printOpen && typeof document !== "undefined" && createPortal(
