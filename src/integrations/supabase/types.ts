@@ -215,6 +215,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_generate_arrears: { Args: never; Returns: number }
+      bill_total: {
+        Args: { p_tariff: number; p_usage: number }
+        Returns: number
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
