@@ -349,7 +349,7 @@ function ArrearsPage() {
     <div className="px-5 pt-4 pb-6">
       <div className="mb-3">
         <h1 className="text-xl font-bold tracking-tight text-slate-900">Laporan Tunggakan</h1>
-        <p className="text-xs text-slate-500">Catat tunggakan pelanggan per bulan & tandai saat lunas.</p>
+        <p className="text-xs text-slate-500">Catat tunggakan pelanggan per bulan & tandai saat lunas. Tagihan bulan yang belum dibayar otomatis menjadi tunggakan setiap ganti bulan.</p>
       </div>
 
       <Card className="p-3 mb-3">
