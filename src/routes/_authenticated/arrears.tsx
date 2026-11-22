@@ -228,7 +228,7 @@ function ArrearsPage() {
 
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; code: string; items: ArrearRow[]; belum: number }>();
-    for (const r of rows) {
+    for (const r of scoped) {
       const g = map.get(r.customer_id) ?? {
         name: r.customers?.name ?? "-",
         code: r.customers?.customer_code ?? "-",
@@ -240,7 +240,7 @@ function ArrearsPage() {
       map.set(r.customer_id, g);
     }
     return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
-  }, [rows]);
+  }, [scoped]);
 
   const printCustomer = (customers.data ?? []).find((c) => c.id === printCustomerId);
   const printReport: CustomerArrearsReport | null = printCustomer ? {
@@ -606,8 +606,8 @@ function ArrearsPage() {
                       {r.notes ? ` · ${r.notes}` : ""}
                     </div>
                   </div>
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700">
-                    Belum
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.paid ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                    {r.paid ? "Lunas" : "Belum"}
                   </span>
                   <Checkbox
                     checked={r.paid}
